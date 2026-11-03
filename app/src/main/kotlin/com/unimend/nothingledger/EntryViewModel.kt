@@ -14,7 +14,10 @@ import com.unimend.nothingledger.entry.EntryAction
 import com.unimend.nothingledger.entry.EntryEffect
 import com.unimend.nothingledger.entry.EntryMode
 import com.unimend.nothingledger.entry.EntryReducer
+import com.unimend.nothingledger.entry.EntrySelectionOptions
+import com.unimend.nothingledger.entry.EntrySelectionPolicy
 import com.unimend.nothingledger.entry.EntryState
+import com.unimend.nothingledger.entry.buildEntrySelectionOptions
 import com.unimend.nothingledger.model.Account
 import com.unimend.nothingledger.model.AccountBalance
 import com.unimend.nothingledger.model.AccountKind
@@ -31,6 +34,8 @@ import java.util.UUID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 internal enum class SaveStatus { INITIALIZING, READY, SAVING, SAVED, ERROR }
@@ -49,6 +54,7 @@ internal class EntryViewModel(
     private val accounts = database.accounts()
     private val categories = database.categories()
     private val createTransaction = CreateTransaction(database.transactions(), accounts, categories, clock)
+    private var selectionOptions = EntrySelectionOptions()
     private val _uiState = MutableStateFlow(
         EntryUiState(restoreEntry(), SaveStatus.INITIALIZING),
     )
@@ -57,7 +63,10 @@ internal class EntryViewModel(
     init {
         viewModelScope.launch {
             runCatching { ensureDefaults() }
-                .onSuccess { _uiState.value = _uiState.value.copy(status = SaveStatus.READY) }
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(status = SaveStatus.READY)
+                    observeSelectionOptions()
+                }
                 .onFailure { error -> showError(error) }
         }
     }
@@ -65,13 +74,18 @@ internal class EntryViewModel(
     fun dispatch(action: EntryAction) {
         if (_uiState.value.status == SaveStatus.SAVING) return
         val transition = EntryReducer.reduce(_uiState.value.entry, action)
-        updateEntry(transition.state)
+        val selected = if (action is EntryAction.ChangeMode) {
+            EntrySelectionPolicy.apply(transition.state, selectionOptions)
+        } else {
+            transition.state
+        }
+        updateEntry(selected)
         val submit = transition.effect as? EntryEffect.Submit ?: return
         _uiState.value = _uiState.value.copy(status = SaveStatus.SAVING, errorMessage = null)
         viewModelScope.launch {
             runCatching { createTransaction(submit.value.toDraft()) }
                 .onSuccess {
-                    val fresh = defaultEntry(clock.instant())
+                    val fresh = EntrySelectionPolicy.apply(defaultEntry(clock.instant()), selectionOptions)
                     savedStateHandle.clearEntry()
                     _uiState.value = EntryUiState(fresh, SaveStatus.SAVED)
                 }
@@ -95,6 +109,16 @@ internal class EntryViewModel(
                 Category(LedgerDefaults.incomeCategoryId, null, "日常收入", CategoryType.INCOME, 1, null),
             )
         }
+    }
+
+    private suspend fun observeSelectionOptions(): Unit = combine(
+        accounts.observeAll(),
+        categories.observeAll(),
+    ) { accountList, categoryList ->
+        buildEntrySelectionOptions(accountList, categoryList, LedgerDefaults.currency)
+    }.collect { options ->
+        selectionOptions = options
+        updateEntry(EntrySelectionPolicy.apply(_uiState.value.entry, options))
     }
 
     private fun updateEntry(entry: EntryState) {
@@ -159,10 +183,7 @@ internal class EntryViewModel(
     }
 }
 
-private fun defaultEntry(now: Instant): EntryState = EntryState.initial(now, LedgerDefaults.currency).copy(
-    sourceAccountId = LedgerDefaults.walletId,
-    categoryId = LedgerDefaults.expenseCategoryId,
-)
+private fun defaultEntry(now: Instant): EntryState = EntryState.initial(now, LedgerDefaults.currency)
 
 private fun com.unimend.nothingledger.entry.EntrySubmission.toDraft(): TransactionDraft = TransactionDraft(
     type = when (mode) {

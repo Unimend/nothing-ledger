@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.key
@@ -25,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.unimend.nothingledger.design.DitherField
 import com.unimend.nothingledger.design.LedgerAmountText
@@ -38,6 +38,7 @@ import com.unimend.nothingledger.categories.CategoryAction
 import com.unimend.nothingledger.categories.CategoryListState
 import com.unimend.nothingledger.entry.EntryAction
 import com.unimend.nothingledger.entry.EntryMode
+import com.unimend.nothingledger.entry.EntryOptionsState
 import com.unimend.nothingledger.shell.ShellAction
 import com.unimend.nothingledger.shell.ShellDestination
 import com.unimend.nothingledger.shell.ShellEffect
@@ -52,6 +53,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             val viewModel: EntryViewModel = viewModel(factory = EntryViewModel.factory(database))
             val uiState by viewModel.uiState.collectAsState()
+            val selectorsViewModel: EntrySelectorsViewModel = viewModel(factory = EntrySelectorsViewModel.factory(database))
+            val entryOptions by selectorsViewModel.state.collectAsState()
+            LaunchedEffect(uiState.entry) { selectorsViewModel.updateContext(uiState.entry) }
             val timelineViewModel: TimelineViewModel = viewModel(factory = TimelineViewModel.factory(database))
             val timelineState by timelineViewModel.uiState.collectAsState()
             val accountsViewModel: AccountsViewModel = viewModel(factory = AccountsViewModel.factory(database))
@@ -74,6 +78,7 @@ class MainActivity : ComponentActivity() {
             NothingLedgerTheme {
                 LedgerApp(
                     uiState = uiState,
+                    entryOptions = entryOptions,
                     timelineState = timelineState,
                     manageState = ManageUiState(accountsState, accountEditor, categoriesState, categoryError),
                     entryAction = viewModel::dispatch,
@@ -88,6 +93,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun LedgerApp(
     uiState: EntryUiState,
+    entryOptions: EntryOptionsState,
     timelineState: com.unimend.nothingledger.timeline.TimelineState,
     manageState: ManageUiState,
     entryAction: (EntryAction) -> Unit,
@@ -111,7 +117,7 @@ private fun LedgerApp(
             }
             Spacer(Modifier.height(24.dp))
             when (destination) {
-                ShellDestination.QUICK_ENTRY -> EntryContent(uiState, entryAction)
+                ShellDestination.QUICK_ENTRY -> EntryContent(uiState, entryOptions, entryAction)
                 ShellDestination.TIMELINE -> TimelineSection(timelineState)
                 ShellDestination.MANAGE -> ManageContent(manageState, manageActions)
             }
@@ -143,33 +149,18 @@ private fun ShellNavigation(selected: ShellDestination, onSelect: (ShellDestinat
 }
 
 @Composable
-private fun EntryContent(uiState: EntryUiState, dispatch: (EntryAction) -> Unit) {
+private fun EntryContent(
+    uiState: EntryUiState,
+    entryOptions: EntryOptionsState,
+    dispatch: (EntryAction) -> Unit,
+) {
     val state = uiState.entry
     ModeRow(state.mode) { mode ->
         dispatch(EntryAction.ChangeMode(mode))
-        when (mode) {
-            EntryMode.EXPENSE -> {
-                dispatch(EntryAction.SelectSourceAccount(LedgerDefaults.walletId))
-                dispatch(EntryAction.SelectCategory(LedgerDefaults.expenseCategoryId))
-            }
-            EntryMode.INCOME -> {
-                dispatch(EntryAction.SelectDestinationAccount(LedgerDefaults.walletId))
-                dispatch(EntryAction.SelectCategory(LedgerDefaults.incomeCategoryId))
-            }
-            EntryMode.TRANSFER -> dispatch(EntryAction.SelectSourceAccount(LedgerDefaults.walletId))
-        }
     }
     Spacer(Modifier.height(24.dp))
     LedgerAmountText(formatAmount(state.amount.minorUnits), Modifier.fillMaxWidth())
-    Text(
-        when (state.mode) {
-            EntryMode.EXPENSE -> "微信钱包  /  日常支出"
-            EntryMode.INCOME -> "日常收入  /  微信钱包"
-            EntryMode.TRANSFER -> "微信钱包  →  选择目标账户"
-        },
-        Modifier.fillMaxWidth(), Color(0xFF8A8A8A),
-        style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End,
-    )
+    EntrySelectorsSection(state, entryOptions, dispatch)
     Spacer(Modifier.height(20.dp))
     Keypad { dispatch(EntryAction.EnterDigit(it)) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
