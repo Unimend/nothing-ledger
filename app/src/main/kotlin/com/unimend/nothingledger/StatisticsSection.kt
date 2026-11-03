@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.unimend.nothingledger.design.LedgerSurface
 import com.unimend.nothingledger.design.NothingLedgerTheme
+import com.unimend.nothingledger.categories.CategoryListState
+import com.unimend.nothingledger.model.CategoryId
 import com.unimend.nothingledger.timeline.CurrencyMonthStatistics
 import com.unimend.nothingledger.timeline.TimelineState
 import com.unimend.nothingledger.timeline.TimelineStatisticsState
@@ -26,8 +28,16 @@ import java.time.ZoneId
 import kotlin.math.max
 
 @Composable
-internal fun StatisticsSection(state: TimelineState, modifier: Modifier = Modifier) {
+internal fun StatisticsSection(
+    state: TimelineState,
+    categories: CategoryListState,
+    modifier: Modifier = Modifier,
+) {
     val statistics = remember(state) { state.toStatistics(ZoneId.systemDefault()) }
+    val categoryNames = remember(categories) {
+        (categories as? CategoryListState.Content)?.rows.orEmpty()
+            .associate { it.category.id to it.category.name }
+    }
     Column(modifier.fillMaxWidth()) {
         Text("本月统计", color = Color.White, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(12.dp))
@@ -38,7 +48,7 @@ internal fun StatisticsSection(state: TimelineState, modifier: Modifier = Modifi
                 StatisticsMessage("本月还没有账单")
             } else {
                 statistics.value.currencies.forEach { currency ->
-                    CurrencyStatistics(currency)
+                    CurrencyStatistics(currency, categoryNames)
                     Spacer(Modifier.height(20.dp))
                 }
             }
@@ -47,7 +57,7 @@ internal fun StatisticsSection(state: TimelineState, modifier: Modifier = Modifi
 }
 
 @Composable
-private fun CurrencyStatistics(statistics: CurrencyMonthStatistics) {
+private fun CurrencyStatistics(statistics: CurrencyMonthStatistics, categoryNames: Map<CategoryId, String>) {
     Text(statistics.currencyCode, color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelMedium)
     Spacer(Modifier.height(8.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -59,6 +69,32 @@ private fun CurrencyStatistics(statistics: CurrencyMonthStatistics) {
     Text("每日支出", color = Color.White, style = MaterialTheme.typography.titleMedium)
     Spacer(Modifier.height(10.dp))
     DailyExpenseBars(statistics)
+    if (statistics.expenseByCategory.isNotEmpty()) {
+        Spacer(Modifier.height(20.dp))
+        Text("分类支出", color = Color.White, style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(10.dp))
+        LedgerSurface(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                statistics.expenseByCategory.take(8).forEach { share ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(categoryNames[share.categoryId] ?: "历史分类", color = Color.White)
+                        Text(
+                            "${share.shareBasisPoints / 100}.${(share.shareBasisPoints % 100).toString().padStart(2, '0')}%",
+                            color = NothingLedgerTheme.colors.contentMuted,
+                        )
+                    }
+                    Box(Modifier.fillMaxWidth().height(5.dp).background(NothingLedgerTheme.colors.border)) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth((share.shareBasisPoints / 10_000f).coerceIn(0.02f, 1f))
+                                .height(5.dp)
+                                .background(NothingLedgerTheme.colors.accent),
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

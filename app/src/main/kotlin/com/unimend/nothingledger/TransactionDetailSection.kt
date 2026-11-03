@@ -21,14 +21,26 @@ import com.unimend.nothingledger.design.NothingLedgerTheme
 import com.unimend.nothingledger.model.Transaction
 import com.unimend.nothingledger.model.TransactionType
 import com.unimend.nothingledger.timeline.TransactionDetailPresentation
+import com.unimend.nothingledger.timeline.TransactionDetailActionState
+import com.unimend.nothingledger.timeline.TransactionDetailPhase
 import com.unimend.nothingledger.timeline.TransactionDetailState
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
-internal fun TransactionDetailScreen(state: TransactionDetailState, onBack: () -> Unit) {
+internal fun TransactionDetailScreen(
+    state: TransactionDetailState,
+    actionState: TransactionDetailActionState,
+    onBack: () -> Unit,
+    onDelete: () -> Unit,
+    onUndoDelete: () -> Unit,
+) {
+    if (actionState.phase == TransactionDetailPhase.DELETED) {
+        DeletedDetailScreen(onBack, onUndoDelete)
+        return
+    }
     when (state) {
-        is TransactionDetailState.Ready -> TransactionDetailScreen(state.detail, onBack)
+        is TransactionDetailState.Ready -> TransactionDetailScreen(state.detail, actionState, onBack, onDelete)
         is TransactionDetailState.Loading -> DetailStatusScreen("READING / DETAIL", onBack)
         is TransactionDetailState.Missing -> DetailStatusScreen("ENTRY / NOT FOUND", onBack)
         is TransactionDetailState.Failure -> DetailStatusScreen("ERROR / ${state.message.take(36)}", onBack)
@@ -36,7 +48,12 @@ internal fun TransactionDetailScreen(state: TransactionDetailState, onBack: () -
 }
 
 @Composable
-private fun TransactionDetailScreen(detail: TransactionDetailPresentation, onBack: () -> Unit) {
+private fun TransactionDetailScreen(
+    detail: TransactionDetailPresentation,
+    actionState: TransactionDetailActionState,
+    onBack: () -> Unit,
+    onDelete: () -> Unit,
+) {
     val transaction = detail.transaction
     LedgerScreen {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -63,6 +80,29 @@ private fun TransactionDetailScreen(detail: TransactionDetailPresentation, onBac
                 DetailRow("币种", transaction.money.currency.currencyCode)
             }
         }
+        actionState.errorMessage?.let {
+            Spacer(Modifier.height(10.dp))
+            Text(it, color = NothingLedgerTheme.colors.accent, style = MaterialTheme.typography.bodyMedium)
+        }
+        Spacer(Modifier.height(16.dp))
+        LedgerControl(
+            label = if (actionState.phase == TransactionDetailPhase.WORKING) "处理中" else "删除账单",
+            onClick = onDelete,
+            modifier = Modifier.fillMaxWidth(),
+            accent = true,
+            enabled = actionState.phase != TransactionDetailPhase.WORKING,
+        )
+    }
+}
+
+@Composable
+private fun DeletedDetailScreen(onBack: () -> Unit, onUndoDelete: () -> Unit) {
+    LedgerScreen {
+        Text("账单已删除", color = Color.White, style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(24.dp))
+        LedgerControl("撤回删除", onUndoDelete, Modifier.fillMaxWidth(), accent = true)
+        Spacer(Modifier.height(8.dp))
+        LedgerControl("返回流水", onBack, Modifier.fillMaxWidth())
     }
 }
 

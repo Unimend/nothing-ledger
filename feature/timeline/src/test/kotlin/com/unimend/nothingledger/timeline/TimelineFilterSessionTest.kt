@@ -73,6 +73,23 @@ class TimelineFilterSessionTest {
         assertEquals(TimelineFilterSession.initial(initialMonth), reset)
     }
 
+    @Test fun `returning to current month preserves active filters`() {
+        val changed = reduce(
+            TimelineFilterAction.PreviousMonth,
+            TimelineFilterAction.ChangeText("salary"),
+            TimelineFilterAction.SelectAccount(accountId),
+        )
+
+        val current = TimelineFilterReducer.reduce(
+            changed,
+            TimelineFilterAction.SelectMonth(initialMonth),
+        )
+
+        assertEquals(initialMonth, current.query.month)
+        assertEquals("salary", current.query.text)
+        assertEquals(accountId, current.query.accountId)
+    }
+
     @Test fun `blank search is retained for editing but does not count as active`() {
         val state = reduce(TimelineFilterAction.ChangeText("   "))
 

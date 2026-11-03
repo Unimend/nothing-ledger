@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.unimend.nothingledger.design.LedgerControl
 import com.unimend.nothingledger.design.LedgerSurface
 import com.unimend.nothingledger.design.NothingLedgerTheme
 import com.unimend.nothingledger.design.ledgerClickable
@@ -30,11 +31,16 @@ import kotlin.math.abs
 public fun TimelineHomePage(
     state: TimelineState,
     onTransactionClick: (Transaction) -> Unit,
+    onPreviousMonth: () -> Unit = {},
+    onNextMonth: () -> Unit = {},
+    onCurrentMonth: () -> Unit = {},
     modifier: Modifier = Modifier,
     zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         TimelineHeader(state)
+        Spacer(Modifier.height(12.dp))
+        MonthNavigation(onPreviousMonth, onCurrentMonth, onNextMonth)
         Spacer(Modifier.height(20.dp))
         when (state) {
             is TimelineState.Loading -> TimelineNotice("READING / LEDGER")
@@ -59,6 +65,19 @@ public fun TimelineHomePage(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MonthNavigation(
+    onPreviousMonth: () -> Unit,
+    onCurrentMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        LedgerControl("PREV", onPreviousMonth, Modifier.weight(1f), accessibilityLabel = "上一个月")
+        LedgerControl("NOW", onCurrentMonth, Modifier.weight(1f), accessibilityLabel = "回到本月")
+        LedgerControl("NEXT", onNextMonth, Modifier.weight(1f), accessibilityLabel = "下一个月")
     }
 }
 

@@ -49,6 +49,7 @@ import com.unimend.nothingledger.shell.ShellReducer
 import com.unimend.nothingledger.shell.ShellState
 import com.unimend.nothingledger.timeline.TimelineHomePage
 import com.unimend.nothingledger.timeline.TransactionDetailState
+import com.unimend.nothingledger.timeline.TransactionDetailActionState
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
@@ -72,6 +73,10 @@ class MainActivity : ComponentActivity() {
             val categoriesState by categoriesViewModel.state.collectAsState()
             val categoryError by categoriesViewModel.commandError.collectAsState()
             var selectedTransactionId by remember { mutableStateOf<TransactionId?>(null) }
+            val detailActionsViewModel: TransactionDetailActionsViewModel = viewModel(
+                factory = TransactionDetailActionsViewModel.factory(database),
+            )
+            val transactionDetailActions by detailActionsViewModel.state.collectAsState()
             val transactionDetail = selectedTransactionId?.let { id ->
                 val detailViewModel: TransactionDetailViewModel = viewModel(
                     key = "transaction-detail-${id.value}",
@@ -79,6 +84,10 @@ class MainActivity : ComponentActivity() {
                 )
                 val state by detailViewModel.state.collectAsState()
                 state
+            }
+            LaunchedEffect(transactionDetail) {
+                val ready = transactionDetail as? TransactionDetailState.Ready ?: return@LaunchedEffect
+                detailActionsViewModel.open(ready.detail.transaction)
             }
             val manageActions = remember(accountsViewModel, categoriesViewModel) {
                 ManageActions(
@@ -96,6 +105,11 @@ class MainActivity : ComponentActivity() {
                     uiState = uiState,
                     entryOptions = entryOptions,
                     timelineState = timelineState,
+                    timelineActions = TimelineActions(
+                        previousMonth = timelineViewModel::showPreviousMonth,
+                        currentMonth = timelineViewModel::showCurrentMonth,
+                        nextMonth = timelineViewModel::showNextMonth,
+                    ),
                     calendarState = calendarState,
                     manageState = ManageUiState(accountsState, accountEditor, categoriesState, categoryError),
                     entryAction = viewModel::dispatch,
@@ -105,8 +119,14 @@ class MainActivity : ComponentActivity() {
                         selectDate = calendarViewModel::selectDate,
                     ),
                     transactionDetail = transactionDetail,
+                    transactionDetailActions = transactionDetailActions,
                     onSelectTransaction = { selectedTransactionId = it },
-                    onCloseTransaction = { selectedTransactionId = null },
+                    onCloseTransaction = {
+                        detailActionsViewModel.close()
+                        selectedTransactionId = null
+                    },
+                    onDeleteTransaction = detailActionsViewModel::delete,
+                    onUndoDelete = detailActionsViewModel::undoDelete,
                     manageActions = manageActions,
                     onExit = ::finish,
                 )
@@ -120,13 +140,17 @@ private fun LedgerApp(
     uiState: EntryUiState,
     entryOptions: EntryOptionsState,
     timelineState: com.unimend.nothingledger.timeline.TimelineState,
+    timelineActions: TimelineActions,
     calendarState: com.unimend.nothingledger.timeline.CalendarState,
     manageState: ManageUiState,
     entryAction: (EntryAction) -> Unit,
     calendarActions: CalendarActions,
     transactionDetail: TransactionDetailState?,
+    transactionDetailActions: TransactionDetailActionState,
     onSelectTransaction: (TransactionId) -> Unit,
     onCloseTransaction: () -> Unit,
+    onDeleteTransaction: () -> Unit,
+    onUndoDelete: () -> Unit,
     manageActions: ManageActions,
     onExit: () -> Unit,
 ) {
@@ -141,7 +165,13 @@ private fun LedgerApp(
     }
 
     transactionDetail?.let { detail ->
-        TransactionDetailScreen(detail, onCloseTransaction)
+        TransactionDetailScreen(
+            state = detail,
+            actionState = transactionDetailActions,
+            onBack = onCloseTransaction,
+            onDelete = onDeleteTransaction,
+            onUndoDelete = onUndoDelete,
+        )
         return
     }
 
@@ -177,6 +207,9 @@ private fun LedgerApp(
                 MainDestination.TIMELINE -> TimelineHomePage(
                     state = timelineState,
                     onTransactionClick = { onSelectTransaction(it.id) },
+                    onPreviousMonth = timelineActions.previousMonth,
+                    onCurrentMonth = timelineActions.currentMonth,
+                    onNextMonth = timelineActions.nextMonth,
                 )
                 MainDestination.CALENDAR -> CalendarSection(
                     state = calendarState,
@@ -184,7 +217,7 @@ private fun LedgerApp(
                     onNextMonth = calendarActions.nextMonth,
                     onSelectDate = calendarActions.selectDate,
                 )
-                MainDestination.STATISTICS -> StatisticsSection(timelineState)
+                MainDestination.STATISTICS -> StatisticsSection(timelineState, manageState.categories)
                 MainDestination.ACCOUNTS -> AccountsContent(
                     manageState,
                     manageActions,
@@ -221,6 +254,8 @@ private fun EntryContent(
     }
     Spacer(Modifier.height(24.dp))
     EntrySelectorsSection(state, entryOptions, dispatch)
+    Spacer(Modifier.height(16.dp))
+    EntryDateTimeEditor(state.occurredAt, dispatch)
     Spacer(Modifier.height(16.dp))
     EntryNoteField(state.note) { dispatch(EntryAction.ChangeNote(it)) }
     Spacer(Modifier.height(16.dp))
@@ -275,6 +310,12 @@ private data class CalendarActions(
     val previousMonth: () -> Unit,
     val nextMonth: () -> Unit,
     val selectDate: (java.time.LocalDate) -> Unit,
+)
+
+private data class TimelineActions(
+    val previousMonth: () -> Unit,
+    val currentMonth: () -> Unit,
+    val nextMonth: () -> Unit,
 )
 
 private data class ManageActions(
