@@ -18,4 +18,5 @@ rootProject.name = "NothingLedger"
 
 include(":core:model")
 include(":domain:ledger")
+include(":app")
 
