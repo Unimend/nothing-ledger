@@ -200,10 +200,10 @@ private fun LedgerApp(
             selected = shellState.selectedMain,
             onSelect = { navigate(ShellAction.SelectMain(it)) },
             onAdd = { navigate(ShellAction.OpenOverlay(OverlayDestination.QUICK_ENTRY)) },
-        ) {
-            AppHeader(uiState, shellState.selectedMain)
+        ) { destination ->
+            AppHeader(uiState, destination)
             Spacer(Modifier.height(24.dp))
-            when (shellState.selectedMain) {
+            when (destination) {
                 MainDestination.TIMELINE -> TimelineHomePage(
                     state = timelineState,
                     onTransactionClick = { onSelectTransaction(it.id) },

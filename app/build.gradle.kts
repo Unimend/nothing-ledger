@@ -11,8 +11,8 @@ android {
         applicationId = "com.unimend.nothingledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.1.1-interactions"
+        versionCode = 11
+        versionName = "0.1.2-gesture-navigation"
     }
 
     compileOptions {

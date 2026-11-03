@@ -141,6 +141,8 @@ Compose ← UiState ← StateFlow ← Result / Domain Event
 这个结构保证视觉升级不会改变交易规则，导入格式变化不会牵动首页，统计扩展也不会污染记账路径。
 
 顶层导航只使用 `MainDestination` 表达 `TIMELINE / CALENDAR / STATISTICS / ACCOUNTS`。
+四个主页面处于同一个受控横向分页器中：横滑和底栏点击共享同一份
+`ShellState.selectedMain`，页面吸附完成后才提交导航状态；每页保留独立的纵向滚动位置。
 记账和分类管理属于 `OverlayDestination`，覆盖在当前主页面上方；关闭后必须返回原主页面。
 `ShellReducer` 统一处理切换、覆盖页和返回，页面文字不参与导航判断。
 
