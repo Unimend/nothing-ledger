@@ -2,6 +2,7 @@ package com.unimend.nothingledger
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,8 +32,17 @@ import com.unimend.nothingledger.design.LedgerAmountText
 import com.unimend.nothingledger.design.LedgerControl
 import com.unimend.nothingledger.design.LedgerScreen
 import com.unimend.nothingledger.design.NothingLedgerTheme
+import com.unimend.nothingledger.accounts.AccountListItem
+import com.unimend.nothingledger.accounts.AccountsState
+import com.unimend.nothingledger.categories.CategoryAction
+import com.unimend.nothingledger.categories.CategoryListState
 import com.unimend.nothingledger.entry.EntryAction
 import com.unimend.nothingledger.entry.EntryMode
+import com.unimend.nothingledger.shell.ShellAction
+import com.unimend.nothingledger.shell.ShellDestination
+import com.unimend.nothingledger.shell.ShellEffect
+import com.unimend.nothingledger.shell.ShellReducer
+import com.unimend.nothingledger.shell.ShellState
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
@@ -39,67 +54,169 @@ class MainActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsState()
             val timelineViewModel: TimelineViewModel = viewModel(factory = TimelineViewModel.factory(database))
             val timelineState by timelineViewModel.uiState.collectAsState()
-            NothingLedgerTheme { EntryScreen(uiState, timelineState, viewModel::dispatch) }
+            val accountsViewModel: AccountsViewModel = viewModel(factory = AccountsViewModel.factory(database))
+            val accountsState by accountsViewModel.accounts.collectAsState()
+            val accountEditor by accountsViewModel.editor.collectAsState()
+            val categoriesViewModel: CategoriesViewModel = viewModel(factory = CategoriesViewModel.factory(database))
+            val categoriesState by categoriesViewModel.state.collectAsState()
+            val categoryError by categoriesViewModel.commandError.collectAsState()
+            val manageActions = remember(accountsViewModel, categoriesViewModel) {
+                ManageActions(
+                    beginAccountCreate = accountsViewModel::beginCreate,
+                    beginAccountRename = { accountsViewModel.beginRename(it.account.id, it.account.name) },
+                    changeAccountName = accountsViewModel::changeName,
+                    saveAccount = accountsViewModel::save,
+                    cancelAccount = accountsViewModel::cancel,
+                    archiveAccount = { accountsViewModel.archive(it.account.id) },
+                    categoryAction = categoriesViewModel::dispatch,
+                )
+            }
+            NothingLedgerTheme {
+                LedgerApp(
+                    uiState = uiState,
+                    timelineState = timelineState,
+                    manageState = ManageUiState(accountsState, accountEditor, categoriesState, categoryError),
+                    entryAction = viewModel::dispatch,
+                    manageActions = manageActions,
+                    onExit = ::finish,
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun EntryScreen(
+private fun LedgerApp(
     uiState: EntryUiState,
     timelineState: com.unimend.nothingledger.timeline.TimelineState,
-    dispatch: (EntryAction) -> Unit,
+    manageState: ManageUiState,
+    entryAction: (EntryAction) -> Unit,
+    manageActions: ManageActions,
+    onExit: () -> Unit,
 ) {
-    val state = uiState.entry
-    val status = uiState.errorMessage?.let { "ERROR / ${it.take(18)}" } ?: uiState.status.name
-
-    LedgerScreen {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("NOTHING\nLEDGER", color = Color.White, style = MaterialTheme.typography.titleLarge)
-                Text(status, color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
-            }
-            Spacer(Modifier.height(24.dp))
-            ModeRow(state.mode) { mode ->
-                dispatch(EntryAction.ChangeMode(mode))
-                when (mode) {
-                    EntryMode.EXPENSE -> {
-                        dispatch(EntryAction.SelectSourceAccount(LedgerDefaults.walletId))
-                        dispatch(EntryAction.SelectCategory(LedgerDefaults.expenseCategoryId))
-                    }
-                    EntryMode.INCOME -> {
-                        dispatch(EntryAction.SelectDestinationAccount(LedgerDefaults.walletId))
-                        dispatch(EntryAction.SelectCategory(LedgerDefaults.incomeCategoryId))
-                    }
-                    EntryMode.TRANSFER -> dispatch(EntryAction.SelectSourceAccount(LedgerDefaults.walletId))
-                }
-            }
-            Spacer(Modifier.height(24.dp))
-            LedgerAmountText(formatAmount(state.amount.minorUnits), Modifier.fillMaxWidth())
-            Text(
-                when (state.mode) {
-                    EntryMode.EXPENSE -> "微信钱包  /  日常支出"
-                    EntryMode.INCOME -> "日常收入  /  微信钱包"
-                    EntryMode.TRANSFER -> "微信钱包  →  选择目标账户"
-                },
-                Modifier.fillMaxWidth(), Color(0xFF8A8A8A),
-                style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End,
-            )
-            Spacer(Modifier.height(20.dp))
-            Keypad { dispatch(EntryAction.EnterDigit(it)) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Key("DEL", Modifier.weight(1f)) { dispatch(EntryAction.BackspaceAmount) }
-                Key("CLEAR", Modifier.weight(1f)) { dispatch(EntryAction.ClearAmount) }
-                Key("SAVE", Modifier.weight(1f), true) { dispatch(EntryAction.RequestSave) }
-            }
-        state.validationErrors.firstOrNull()?.let {
-            Text("CHECK / ${it.name}", color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
-        }
-        Spacer(Modifier.height(32.dp))
-        Box(Modifier.fillMaxWidth().height(72.dp)) {
-            DitherField(Modifier.align(Alignment.CenterEnd).size(160.dp, 72.dp), color = Color(0xFF333333))
-        }
-        TimelineSection(timelineState)
+    var destination by rememberSaveable { mutableStateOf(ShellDestination.QUICK_ENTRY) }
+    fun navigate(action: ShellAction) {
+        val transition = ShellReducer.reduce(ShellState(destination), action)
+        destination = transition.state.destination
+        if (transition.effect == ShellEffect.ExitRequested) onExit()
     }
+    BackHandler { navigate(ShellAction.NavigateBack) }
+
+    key(destination) {
+        LedgerScreen {
+            AppHeader(uiState, destination)
+            Spacer(Modifier.height(16.dp))
+            ShellNavigation(destination) {
+                navigate(ShellAction.SelectDestination(it))
+            }
+            Spacer(Modifier.height(24.dp))
+            when (destination) {
+                ShellDestination.QUICK_ENTRY -> EntryContent(uiState, entryAction)
+                ShellDestination.TIMELINE -> TimelineSection(timelineState)
+                ShellDestination.MANAGE -> ManageContent(manageState, manageActions)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppHeader(uiState: EntryUiState, destination: ShellDestination) {
+    val status = uiState.errorMessage?.let { "ERROR / ${it.take(18)}" }
+        ?: if (destination == ShellDestination.QUICK_ENTRY) uiState.status.name else destination.name
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("NOTHING\nLEDGER", color = Color.White, style = MaterialTheme.typography.titleLarge)
+        Text(status, color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+@Composable
+private fun ShellNavigation(selected: ShellDestination, onSelect: (ShellDestination) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(
+            ShellDestination.QUICK_ENTRY to "ENTRY",
+            ShellDestination.TIMELINE to "LIST",
+            ShellDestination.MANAGE to "MANAGE",
+        ).forEach { (destination, label) ->
+            LedgerControl(label, { onSelect(destination) }, Modifier.weight(1f), accent = destination == selected)
+        }
+    }
+}
+
+@Composable
+private fun EntryContent(uiState: EntryUiState, dispatch: (EntryAction) -> Unit) {
+    val state = uiState.entry
+    ModeRow(state.mode) { mode ->
+        dispatch(EntryAction.ChangeMode(mode))
+        when (mode) {
+            EntryMode.EXPENSE -> {
+                dispatch(EntryAction.SelectSourceAccount(LedgerDefaults.walletId))
+                dispatch(EntryAction.SelectCategory(LedgerDefaults.expenseCategoryId))
+            }
+            EntryMode.INCOME -> {
+                dispatch(EntryAction.SelectDestinationAccount(LedgerDefaults.walletId))
+                dispatch(EntryAction.SelectCategory(LedgerDefaults.incomeCategoryId))
+            }
+            EntryMode.TRANSFER -> dispatch(EntryAction.SelectSourceAccount(LedgerDefaults.walletId))
+        }
+    }
+    Spacer(Modifier.height(24.dp))
+    LedgerAmountText(formatAmount(state.amount.minorUnits), Modifier.fillMaxWidth())
+    Text(
+        when (state.mode) {
+            EntryMode.EXPENSE -> "微信钱包  /  日常支出"
+            EntryMode.INCOME -> "日常收入  /  微信钱包"
+            EntryMode.TRANSFER -> "微信钱包  →  选择目标账户"
+        },
+        Modifier.fillMaxWidth(), Color(0xFF8A8A8A),
+        style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End,
+    )
+    Spacer(Modifier.height(20.dp))
+    Keypad { dispatch(EntryAction.EnterDigit(it)) }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Key("DEL", Modifier.weight(1f)) { dispatch(EntryAction.BackspaceAmount) }
+        Key("CLEAR", Modifier.weight(1f)) { dispatch(EntryAction.ClearAmount) }
+        Key("SAVE", Modifier.weight(1f), true) { dispatch(EntryAction.RequestSave) }
+    }
+    state.validationErrors.firstOrNull()?.let {
+        Text("CHECK / ${it.name}", color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
+    }
+    Spacer(Modifier.height(32.dp))
+    Box(Modifier.fillMaxWidth().height(72.dp)) {
+        DitherField(Modifier.align(Alignment.CenterEnd).size(160.dp, 72.dp), color = Color(0xFF333333))
+    }
+}
+
+private data class ManageUiState(
+    val accounts: AccountsState,
+    val accountEditor: AccountEditorState,
+    val categories: CategoryListState,
+    val categoryError: String?,
+)
+
+private data class ManageActions(
+    val beginAccountCreate: () -> Unit,
+    val beginAccountRename: (AccountListItem) -> Unit,
+    val changeAccountName: (String) -> Unit,
+    val saveAccount: () -> Unit,
+    val cancelAccount: () -> Unit,
+    val archiveAccount: (AccountListItem) -> Unit,
+    val categoryAction: (CategoryAction) -> Unit,
+)
+
+@Composable
+private fun ManageContent(state: ManageUiState, actions: ManageActions) {
+    AccountsSection(
+        accounts = state.accounts,
+        editor = state.accountEditor,
+        onBeginCreate = actions.beginAccountCreate,
+        onBeginRename = actions.beginAccountRename,
+        onNameChange = actions.changeAccountName,
+        onSave = actions.saveAccount,
+        onCancel = actions.cancelAccount,
+        onArchive = actions.archiveAccount,
+    )
+    Spacer(Modifier.height(32.dp))
+    CategoriesSection(state.categories, state.categoryError, actions.categoryAction)
 }
 
 @Composable

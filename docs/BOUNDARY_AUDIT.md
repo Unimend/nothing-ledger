@@ -33,6 +33,12 @@ Compose -> ViewModel -> 用例 -> Repository 接口 <- Room 实现
 4. `SavedStateHandle` 只保存可恢复的编辑输入，不保存 `SAVING`、错误、列表结果等
    短暂状态。
 5. 长任务放在 ViewModel 的协程作用域内；Repository 不创建无主协程。
+6. Compose 不接收 Repository。账户只能通过 `ManageAccounts` 写入，分类只能通过
+   `CategoryManager.dispatch` 写入，交易只能通过交易用例写入；Repository 仅交给这些
+   统一写入口和只读观察器。
+7. 同一功能的写入入口必须串行化“读取规则所需状态 -> 校验 -> 保存”这一整段，不能只
+   串行最后一次 `save`。当前账户与分类管理器已用互斥区保护，避免快速连点生成重复顺序
+   或绕过重名检查。
 
 ## 已知但不需要现在机械拆分的事项
 

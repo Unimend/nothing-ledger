@@ -11,8 +11,8 @@ android {
         applicationId = "com.unimend.nothingledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.0.4-entry"
+        versionCode = 5
+        versionName = "0.0.5-shell"
     }
 
     compileOptions {
@@ -36,6 +36,9 @@ dependencies {
     implementation(project(":domain:ledger"))
     implementation(project(":feature:entry"))
     implementation(project(":feature:timeline"))
+    implementation(project(":feature:accounts"))
+    implementation(project(":feature:categories"))
+    implementation(project(":feature:shell"))
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)

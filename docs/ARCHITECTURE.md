@@ -118,6 +118,7 @@ Room、文件、导入解析、备份、系统时间等具体实现。它们实�
 :domain:analytics    统计查询与投影
 :feature:entry       快速记账
 :feature:timeline    流水与搜索
+:feature:shell       顶层目的地与返回规则（纯 Kotlin）
 :feature:insights    统计
 :feature:settings    设置、导入与备份入口
 :feature:widget      桌面组件
@@ -136,6 +137,9 @@ Compose ← UiState ← StateFlow ← Result / Domain Event
 ```
 
 这个结构保证视觉升级不会改变交易规则，导入格式变化不会牵动首页，统计扩展也不会污染记账路径。
+
+顶层导航只使用 `ShellDestination` 表达 `QUICK_ENTRY / TIMELINE / MANAGE`，并由
+`ShellReducer` 统一处理切换和返回。页面文字只是展示内容，不参与导航判断。
 
 具体的代码边界检查结果与后续约束见 [BOUNDARY_AUDIT.md](BOUNDARY_AUDIT.md)。
 
