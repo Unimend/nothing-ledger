@@ -7,10 +7,24 @@ import java.util.UUID
 
 public class CreateTransaction(
     private val repository: TransactionRepository,
+    private val accounts: AccountRepository,
+    private val categories: CategoryRepository,
     private val clock: Clock,
     private val newId: () -> TransactionId = { TransactionId(UUID.randomUUID()) },
 ) {
     public operator fun invoke(draft: TransactionDraft): Transaction {
+        val participatingAccounts = listOfNotNull(draft.sourceAccountId, draft.destinationAccountId)
+            .distinct()
+            .associateWith { id -> requireNotNull(accounts.findById(id)) { "Account does not exist" } }
+        AccountTransactionPolicy().validate(draft, participatingAccounts)
+        when (draft.type) {
+            com.unimend.nothingledger.model.TransactionType.TRANSFER ->
+                require(draft.categoryId == null) { "Transfer must not have a category" }
+            else -> RequireUsableCategory(categories)(
+                requireNotNull(draft.categoryId) { "Transaction requires a category" },
+                draft.type,
+            )
+        }
         val now = clock.instant()
         val transaction = Transaction(
             id = newId(),

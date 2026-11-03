@@ -4,6 +4,11 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.unimend.nothingledger.model.AccountId
+import com.unimend.nothingledger.model.Account
+import com.unimend.nothingledger.model.AccountBalance
+import com.unimend.nothingledger.model.AccountKind
+import com.unimend.nothingledger.model.Category
+import com.unimend.nothingledger.model.CategoryType
 import com.unimend.nothingledger.model.CategoryId
 import com.unimend.nothingledger.model.Money
 import com.unimend.nothingledger.model.Transaction
@@ -20,6 +25,8 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.Currency
 import java.util.UUID
+import com.unimend.nothingledger.domain.CreateTransaction
+import com.unimend.nothingledger.domain.TransactionDraft
 
 @RunWith(AndroidJUnit4::class)
 class LedgerDatabaseTest {
@@ -65,6 +72,40 @@ class LedgerDatabaseTest {
         assertEquals(transaction, repository.findById(transaction.id))
         repository.softDelete(transaction.id)
         assertNull(repository.findById(transaction.id))
+    }
+
+    @Test fun domainCoordinatorPersistsThroughAllRoomRepositories() {
+        val account = Account(
+            AccountId(UUID.randomUUID()), "Wallet", AccountKind.PAYMENT,
+            AccountBalance(0, Currency.getInstance("CNY")), 0, null,
+        )
+        val category = Category(
+            CategoryId(UUID.randomUUID()), null, "Food", CategoryType.EXPENSE, 0, null,
+        )
+        val accountRepository = RoomAccountRepository(database.accountDao())
+        val categoryRepository = RoomCategoryRepository(database.categoryDao())
+        val transactionRepository = RoomTransactionRepository(database.transactionDao())
+        accountRepository.save(account)
+        categoryRepository.save(category)
+
+        val transaction = CreateTransaction(
+            transactionRepository,
+            accountRepository,
+            categoryRepository,
+            Clock.fixed(now, ZoneOffset.UTC),
+        ) {
+            TransactionId(UUID.fromString("00000000-0000-0000-0000-000000000010"))
+        }(
+            TransactionDraft(
+                TransactionType.EXPENSE,
+                Money(2000, Currency.getInstance("CNY")),
+                now,
+                sourceAccountId = account.id,
+                categoryId = category.id,
+            ),
+        )
+
+        assertEquals(transaction, transactionRepository.findById(transaction.id))
     }
 }
 

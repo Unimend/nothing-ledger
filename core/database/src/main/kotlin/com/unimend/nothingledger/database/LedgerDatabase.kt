@@ -31,6 +31,8 @@ public class LedgerDatabaseHandle internal constructor(
     internal val database: LedgerRoomDatabase,
 ) : AutoCloseable {
     public fun transactions(): RoomTransactionRepository = RoomTransactionRepository(database.transactionDao())
+    public fun accounts(): RoomAccountRepository = RoomAccountRepository(database.accountDao())
+    public fun categories(): RoomCategoryRepository = RoomCategoryRepository(database.categoryDao())
     override fun close(): Unit = database.close()
 }
 

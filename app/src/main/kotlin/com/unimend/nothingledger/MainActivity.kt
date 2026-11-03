@@ -33,7 +33,7 @@ class MainActivity : Activity() {
 
             paint.color = Color.rgb(255, 45, 45)
             paint.textSize = unit * 0.58f
-            canvas.drawText("CORE DIAGNOSTICS / 0.0.2", left, unit * 6.1f, paint)
+            canvas.drawText("CORE DIAGNOSTICS / 0.0.3", left, unit * 6.1f, paint)
 
             paint.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
             paint.textSize = unit * 0.72f
@@ -43,7 +43,9 @@ class MainActivity : Activity() {
                 "03  DOMAIN RULES    PASS",
                 "04  TEST BASELINE   PASS",
                 "05  DATABASE        PASS",
-                "06  NOTHING UI      NEXT",
+                "06  ACCOUNT RULES   PASS",
+                "07  CATEGORY RULES  PASS",
+                "08  NOTHING UI      NEXT",
             )
             rows.forEachIndexed { index, row ->
                 paint.color = if (row.endsWith("PASS")) Color.WHITE else Color.rgb(110, 110, 110)
