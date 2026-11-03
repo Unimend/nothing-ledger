@@ -39,7 +39,7 @@ internal fun IncomeExpenseStatsDraft() {
             expense = listOf(.52f, .31f, .76f, .43f, .68f, .38f, .61f),
         )
         AxisLabels(if (period == "日") listOf("08", "10", "12", "14", "16", "18", "20") else listOf("1", "2", "3", "4", "5", "6", "7"))
-        ChartLegend("收入", Color.White, "支出", NothingLedgerTheme.colors.accent)
+        ChartLegend("收入", NothingLedgerTheme.colors.income, "支出", NothingLedgerTheme.colors.expense)
     }
 }
 
@@ -48,12 +48,12 @@ internal fun AssetTrendDraft() {
     var period by remember { mutableStateOf("月") }
     ChartTitle("资产走势", "净资产变化与阶段高低点", listOf("月", "年"), period) { period = it }
     LedgerAmountText("¥ 128,420.68", Modifier.fillMaxWidth())
-    Text("较上个${period}度  +¥ 6,280.40", color = NothingLedgerTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
+    Text("较上个${period}度  +¥ 6,280.40", color = NothingLedgerTheme.colors.income, style = MaterialTheme.typography.labelLarge)
     Spacer(Modifier.height(LedgerSpacing.md))
     ChartCard("净资产 / $period") {
         TrendLineChart(listOf(.20f, .34f, .29f, .46f, .52f, .49f, .68f, .76f, .71f, .88f))
         AxisLabels(if (period == "月") listOf("01", "05", "10", "15", "20", "25", "30") else listOf("20", "21", "22", "23", "24", "25", "26"))
-        ChartLegend("资产", Color.White, "当前", NothingLedgerTheme.colors.accent)
+        ChartLegend("资产", NothingLedgerTheme.colors.asset, "当前", NothingLedgerTheme.colors.warning)
     }
 }
 
@@ -68,7 +68,7 @@ internal fun IncomeExpenseCompareDraft() {
             if (index != labels.lastIndex) Spacer(Modifier.height(LedgerSpacing.sm))
         }
         Spacer(Modifier.height(LedgerSpacing.md))
-        ChartLegend("收入", Color.White, "支出", NothingLedgerTheme.colors.accent)
+        ChartLegend("收入", NothingLedgerTheme.colors.income, "支出", NothingLedgerTheme.colors.expense)
     }
 }
 
@@ -81,7 +81,14 @@ internal fun ExpenseShareDraft() {
         Spacer(Modifier.height(LedgerSpacing.md))
         SHARE_DATA.forEachIndexed { index, item ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${if (index == 0) "■" else "□"}  ${item.first}", color = if (index == 0) NothingLedgerTheme.colors.accent else Color.White)
+                val colors = listOf(
+                    NothingLedgerTheme.colors.expense,
+                    NothingLedgerTheme.colors.categoryA,
+                    NothingLedgerTheme.colors.categoryB,
+                    NothingLedgerTheme.colors.categoryC,
+                    NothingLedgerTheme.colors.transfer,
+                )
+                Text("■  ${item.first}", color = colors[index])
                 Text("${item.second}%", color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(LedgerSpacing.xs))
@@ -97,7 +104,7 @@ internal fun IncomeExpenseHeatmapDraft() {
     ChartCard("${period}度日历热力") {
         HeatmapChart(if (period == "月") 7 else 18)
         Spacer(Modifier.height(LedgerSpacing.md))
-        ChartLegend("收入较多", Color.White, "支出较多", NothingLedgerTheme.colors.accent)
+        ChartLegend("收入较多", NothingLedgerTheme.colors.income, "支出较多", NothingLedgerTheme.colors.expense)
         Text("颜色越亮，表示当天金额或频率越高。", color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.bodySmall)
     }
 }
@@ -135,7 +142,7 @@ private fun SummaryCell(label: String, value: String, modifier: Modifier, accent
     LedgerSurface(modifier) {
         Column(Modifier.padding(LedgerSpacing.sm)) {
             Text(label, color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelMedium)
-            Text(value, color = if (accent) NothingLedgerTheme.colors.accent else Color.White, style = MaterialTheme.typography.labelLarge)
+            Text(value, color = if (accent) NothingLedgerTheme.colors.expense else NothingLedgerTheme.colors.income, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -153,7 +160,8 @@ private fun ChartCard(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun PairedBarChart(income: List<Float>, expense: List<Float>) {
-    val accent = NothingLedgerTheme.colors.accent
+    val incomeColor = NothingLedgerTheme.colors.income
+    val expenseColor = NothingLedgerTheme.colors.expense
     val grid = NothingLedgerTheme.colors.border
     Canvas(Modifier.fillMaxWidth().height(220.dp)) {
         repeat(4) { line ->
@@ -164,15 +172,16 @@ private fun PairedBarChart(income: List<Float>, expense: List<Float>) {
         val barWidth = slot * .23f
         income.indices.forEach { index ->
             val center = slot * (index + .5f)
-            drawRect(Color.White, Offset(center - barWidth - 2.dp.toPx(), size.height * (1f - income[index])), Size(barWidth, size.height * income[index]))
-            drawRect(accent, Offset(center + 2.dp.toPx(), size.height * (1f - expense[index])), Size(barWidth, size.height * expense[index]))
+            drawRect(incomeColor, Offset(center - barWidth - 2.dp.toPx(), size.height * (1f - income[index])), Size(barWidth, size.height * income[index]))
+            drawRect(expenseColor, Offset(center + 2.dp.toPx(), size.height * (1f - expense[index])), Size(barWidth, size.height * expense[index]))
         }
     }
 }
 
 @Composable
 private fun TrendLineChart(values: List<Float>) {
-    val accent = NothingLedgerTheme.colors.accent
+    val asset = NothingLedgerTheme.colors.asset
+    val current = NothingLedgerTheme.colors.warning
     val grid = NothingLedgerTheme.colors.border
     Canvas(Modifier.fillMaxWidth().height(240.dp)) {
         repeat(4) { line ->
@@ -184,28 +193,29 @@ private fun TrendLineChart(values: List<Float>) {
             val point = Offset(size.width * index / values.lastIndex, size.height * (1f - value))
             if (index == 0) path.moveTo(point.x, point.y) else path.lineTo(point.x, point.y)
         }
-        drawPath(path, Color.White, style = Stroke(width = 3.dp.toPx()))
+        drawPath(path, asset, style = Stroke(width = 3.dp.toPx()))
         values.forEachIndexed { index, value ->
             val point = Offset(size.width * index / values.lastIndex, size.height * (1f - value))
-            drawRect(if (index == values.lastIndex) accent else Color.White, point - Offset(4.dp.toPx(), 4.dp.toPx()), Size(8.dp.toPx(), 8.dp.toPx()))
+            drawRect(if (index == values.lastIndex) current else asset, point - Offset(4.dp.toPx(), 4.dp.toPx()), Size(8.dp.toPx(), 8.dp.toPx()))
         }
     }
 }
 
 @Composable
-private fun ComparisonRow(label: String, income: Float, expense: Float) {
-    val accent = NothingLedgerTheme.colors.accent
+private fun ComparisonRow(label: String, incomeRatio: Float, expenseRatio: Float) {
+    val incomeColor = NothingLedgerTheme.colors.income
+    val expenseColor = NothingLedgerTheme.colors.expense
     val border = NothingLedgerTheme.colors.border
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LedgerSpacing.sm)) {
         Text(label, color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelMedium)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Canvas(Modifier.fillMaxWidth().height(8.dp)) {
                 drawRect(border)
-                drawRect(Color.White, size = Size(size.width * income, size.height))
+                drawRect(incomeColor, size = Size(size.width * incomeRatio, size.height))
             }
             Canvas(Modifier.fillMaxWidth().height(8.dp)) {
                 drawRect(border)
-                drawRect(accent, size = Size(size.width * expense, size.height))
+                drawRect(expenseColor, size = Size(size.width * expenseRatio, size.height))
             }
         }
     }
@@ -213,8 +223,13 @@ private fun ComparisonRow(label: String, income: Float, expense: Float) {
 
 @Composable
 private fun ExpenseDonutChart() {
-    val accent = NothingLedgerTheme.colors.accent
-    val colors = listOf(accent, Color.White, Color(0xFF999999), Color(0xFF555555), Color(0xFF2A2A2A))
+    val colors = listOf(
+        NothingLedgerTheme.colors.expense,
+        NothingLedgerTheme.colors.categoryA,
+        NothingLedgerTheme.colors.categoryB,
+        NothingLedgerTheme.colors.categoryC,
+        NothingLedgerTheme.colors.transfer,
+    )
     Canvas(Modifier.fillMaxWidth().height(240.dp)) {
         val diameter = minOf(size.width, size.height) * .82f
         val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
@@ -229,7 +244,8 @@ private fun ExpenseDonutChart() {
 
 @Composable
 private fun HeatmapChart(columns: Int) {
-    val accent = NothingLedgerTheme.colors.accent
+    val expenseColor = NothingLedgerTheme.colors.expense
+    val incomeColor = NothingLedgerTheme.colors.income
     val border = NothingLedgerTheme.colors.border
     Canvas(Modifier.fillMaxWidth().height(if (columns == 7) 240.dp else 180.dp)) {
         val rows = 7
@@ -239,10 +255,10 @@ private fun HeatmapChart(columns: Int) {
             repeat(rows) { row ->
                 val seed = (column * 11 + row * 7 + 3) % 9
                 val active = seed > 1
-                val income = seed % 4 == 0
+                val isIncome = seed % 4 == 0
                 val alpha = if (active) .24f + seed / 12f else 1f
                 drawRect(
-                    color = if (!active) border else if (income) Color.White.copy(alpha = alpha) else accent.copy(alpha = alpha),
+                    color = if (!active) border else if (isIncome) incomeColor.copy(alpha = alpha) else expenseColor.copy(alpha = alpha),
                     topLeft = Offset(column * (cell + gap), row * (cell + gap)),
                     size = Size(cell, cell),
                 )

@@ -61,9 +61,9 @@ private fun CurrencyStatistics(statistics: CurrencyMonthStatistics, categoryName
     Text(statistics.currencyCode, color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelMedium)
     Spacer(Modifier.height(8.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        StatisticCard("支出", statistics.overview.expenseMinor, Modifier.weight(1f), true)
-        StatisticCard("收入", statistics.overview.incomeMinor, Modifier.weight(1f), false)
-        StatisticCard("结余", statistics.overview.netMinor, Modifier.weight(1f), false)
+        StatisticCard("支出", statistics.overview.expenseMinor, Modifier.weight(1f), NothingLedgerTheme.colors.expense)
+        StatisticCard("收入", statistics.overview.incomeMinor, Modifier.weight(1f), NothingLedgerTheme.colors.income)
+        StatisticCard("结余", statistics.overview.netMinor, Modifier.weight(1f), NothingLedgerTheme.colors.asset)
     }
     Spacer(Modifier.height(20.dp))
     Text("每日支出", color = Color.White, style = MaterialTheme.typography.titleMedium)
@@ -75,7 +75,15 @@ private fun CurrencyStatistics(statistics: CurrencyMonthStatistics, categoryName
         Spacer(Modifier.height(10.dp))
         LedgerSurface(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                statistics.expenseByCategory.take(8).forEach { share ->
+                val categoryColors = listOf(
+                    NothingLedgerTheme.colors.expense,
+                    NothingLedgerTheme.colors.categoryA,
+                    NothingLedgerTheme.colors.categoryB,
+                    NothingLedgerTheme.colors.categoryC,
+                    NothingLedgerTheme.colors.transfer,
+                    NothingLedgerTheme.colors.warning,
+                )
+                statistics.expenseByCategory.take(8).forEachIndexed { index, share ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(categoryNames[share.categoryId] ?: "历史分类", color = Color.White)
                         Text(
@@ -88,7 +96,7 @@ private fun CurrencyStatistics(statistics: CurrencyMonthStatistics, categoryName
                             Modifier
                                 .fillMaxWidth((share.shareBasisPoints / 10_000f).coerceIn(0.02f, 1f))
                                 .height(5.dp)
-                                .background(NothingLedgerTheme.colors.accent),
+                                .background(categoryColors[index % categoryColors.size]),
                         )
                     }
                 }
@@ -98,13 +106,13 @@ private fun CurrencyStatistics(statistics: CurrencyMonthStatistics, categoryName
 }
 
 @Composable
-private fun StatisticCard(label: String, minor: Long, modifier: Modifier, accent: Boolean) {
+private fun StatisticCard(label: String, minor: Long, modifier: Modifier, color: Color) {
     LedgerSurface(modifier) {
         Column(Modifier.padding(12.dp)) {
             Text(label, color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelMedium)
             Text(
                 formatCompactStatisticsAmount(minor),
-                color = if (accent) NothingLedgerTheme.colors.accent else Color.White,
+                color = color,
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
             )
@@ -130,14 +138,14 @@ private fun DailyExpenseBars(statistics: CurrencyMonthStatistics) {
             expenses.forEach { day ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("${day.date.dayOfMonth}日", color = Color.White, style = MaterialTheme.typography.bodyMedium)
-                    Text(formatStatisticsAmount(day.expenseMinor), color = NothingLedgerTheme.colors.accent, style = MaterialTheme.typography.bodyMedium)
+                    Text(formatStatisticsAmount(day.expenseMinor), color = NothingLedgerTheme.colors.expense, style = MaterialTheme.typography.bodyMedium)
                 }
                 Box(Modifier.fillMaxWidth().height(6.dp).background(NothingLedgerTheme.colors.border)) {
                     Box(
                         Modifier
                             .fillMaxWidth((day.expenseMinor.toFloat() / largest.toFloat()).coerceIn(0.04f, 1f))
                             .height(6.dp)
-                            .background(NothingLedgerTheme.colors.accent),
+                            .background(NothingLedgerTheme.colors.expense),
                     )
                 }
             }

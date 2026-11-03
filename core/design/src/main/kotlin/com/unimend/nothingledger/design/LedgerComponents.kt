@@ -105,6 +105,7 @@ public fun LedgerAmountText(
     modifier: Modifier = Modifier,
     accent: Boolean = false,
     textAlign: TextAlign = TextAlign.End,
+    color: Color? = null,
 ) {
     val style = when {
         amount.length <= 9 -> LedgerTextStyles.amountLarge
@@ -114,7 +115,7 @@ public fun LedgerAmountText(
     Text(
         text = amount,
         modifier = modifier,
-        color = if (accent) NothingLedgerTheme.colors.accent else NothingLedgerTheme.colors.contentPrimary,
+        color = color ?: if (accent) NothingLedgerTheme.colors.accent else NothingLedgerTheme.colors.contentPrimary,
         style = style,
         textAlign = textAlign,
         maxLines = 1,
@@ -129,6 +130,7 @@ public fun LedgerControl(
     accent: Boolean = false,
     enabled: Boolean = true,
     accessibilityLabel: String = label,
+    tone: LedgerControlTone? = null,
 ) {
     val colors = NothingLedgerTheme.colors
     val shape = RoundedCornerShape(LedgerRadius.control)
@@ -142,6 +144,7 @@ public fun LedgerControl(
             .background(
                 when {
                     !enabled -> colors.surface
+                    tone != null -> tone.color(colors)
                     accent -> colors.accent
                     else -> colors.surfaceRaised
                 },
@@ -157,6 +160,30 @@ public fun LedgerControl(
             textAlign = TextAlign.Center,
         )
     }
+}
+
+public enum class LedgerControlTone {
+    ACCENT,
+    INCOME,
+    EXPENSE,
+    ASSET,
+    TRANSFER,
+    WARNING,
+    CATEGORY_A,
+    CATEGORY_B,
+    CATEGORY_C,
+}
+
+private fun LedgerControlTone.color(colors: LedgerColors): Color = when (this) {
+    LedgerControlTone.ACCENT -> colors.accent
+    LedgerControlTone.INCOME -> colors.income
+    LedgerControlTone.EXPENSE -> colors.expense
+    LedgerControlTone.ASSET -> colors.asset
+    LedgerControlTone.TRANSFER -> colors.transfer
+    LedgerControlTone.WARNING -> colors.warning
+    LedgerControlTone.CATEGORY_A -> colors.categoryA
+    LedgerControlTone.CATEGORY_B -> colors.categoryB
+    LedgerControlTone.CATEGORY_C -> colors.categoryC
 }
 
 public enum class LedgerStatus { ACTIVE, MUTED, ALERT }

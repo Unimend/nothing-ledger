@@ -11,8 +11,8 @@ android {
         applicationId = "com.unimend.nothingledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 20
-        versionName = "0.3.5-workbench-data-visuals"
+        versionCode = 21
+        versionName = "0.3.6-semantic-color-entry-draft"
     }
 
     compileOptions {

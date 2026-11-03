@@ -84,11 +84,11 @@ public fun CalendarDayCell(
                 when {
                     state.hasMultipleCurrencies -> CellLabel("多币种", NothingLedgerTheme.colors.contentMuted)
                     else -> {
-                        state.incomeLabel?.let { CellLabel("+$it", Color.White) }
-                        state.expenseLabel?.let { CellLabel("−$it", NothingLedgerTheme.colors.accent) }
+                        state.incomeLabel?.let { CellLabel("+$it", NothingLedgerTheme.colors.income) }
+                        state.expenseLabel?.let { CellLabel("−$it", NothingLedgerTheme.colors.expense) }
                     }
                 }
-                if (state.hasTransfer) CellLabel("转账", NothingLedgerTheme.colors.contentMuted)
+                if (state.hasTransfer) CellLabel("转账", NothingLedgerTheme.colors.transfer)
             }
         }
     }

@@ -120,7 +120,7 @@ internal fun WorkbenchLayoutDraftScreen(
             WorkbenchLayoutDraft.STATISTICS -> StatisticsDraft()
             WorkbenchLayoutDraft.ACCOUNTS -> AccountsDraft()
             WorkbenchLayoutDraft.DETAIL -> DetailDraft()
-            WorkbenchLayoutDraft.EDITOR -> EditorDraft()
+            WorkbenchLayoutDraft.EDITOR -> EntryEditorDraft()
             WorkbenchLayoutDraft.TAGS -> TagsDraft()
             WorkbenchLayoutDraft.MINI_KEYPAD -> MiniNumericKeypadDraft()
             WorkbenchLayoutDraft.INCOME_EXPENSE_STATS -> IncomeExpenseStatsDraft()
@@ -231,26 +231,6 @@ private fun DetailDraft() {
         LedgerControl("编辑", {}, Modifier.weight(1f))
         LedgerControl("删除", {}, Modifier.weight(1f), accent = true)
     }
-}
-
-@Composable
-private fun EditorDraft() {
-    DraftHeader("记一笔", "支出")
-    Spacer(Modifier.height(LedgerSpacing.sm))
-    LedgerAmountText("¥ 128.00", Modifier.fillMaxWidth())
-    Spacer(Modifier.height(LedgerSpacing.md))
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LedgerSpacing.xs)) {
-        LedgerControl("餐饮", {}, Modifier.weight(1f))
-        LedgerControl("微信钱包", {}, Modifier.weight(1f))
-    }
-    Spacer(Modifier.height(LedgerSpacing.sm))
-    listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), listOf("7", "8", "9")).forEach { row ->
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LedgerSpacing.xs)) {
-            row.forEach { label -> LedgerControl(label, {}, Modifier.weight(1f)) }
-        }
-        Spacer(Modifier.height(LedgerSpacing.xs))
-    }
-    LedgerControl("保存账单", {}, Modifier.fillMaxWidth(), accent = true)
 }
 
 @Composable

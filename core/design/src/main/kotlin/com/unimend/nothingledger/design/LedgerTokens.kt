@@ -16,6 +16,14 @@ public data class LedgerColors(
     public val border: Color,
     public val accent: Color,
     public val positive: Color,
+    public val income: Color,
+    public val expense: Color,
+    public val asset: Color,
+    public val transfer: Color,
+    public val warning: Color,
+    public val categoryA: Color,
+    public val categoryB: Color,
+    public val categoryC: Color,
 )
 
 public object LedgerColorTokens {
@@ -28,7 +36,15 @@ public object LedgerColorTokens {
         contentMuted = Color(0xFF656565),
         border = Color(0xFF303030),
         accent = Color(0xFFFF2D2D),
-        positive = Color(0xFFF5F5F5),
+        positive = Color(0xFF63E69B),
+        income = Color(0xFF63E69B),
+        expense = Color(0xFFFF5A5F),
+        asset = Color(0xFF55C7FF),
+        transfer = Color(0xFFB79CFF),
+        warning = Color(0xFFFFD45A),
+        categoryA = Color(0xFFFF9B5A),
+        categoryB = Color(0xFF5AE0D2),
+        categoryC = Color(0xFFFF7CCB),
     )
 }
 

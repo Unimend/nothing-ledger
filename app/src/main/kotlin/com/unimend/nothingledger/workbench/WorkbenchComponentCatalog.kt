@@ -120,6 +120,14 @@ private fun ColorTokenGrid() {
         "弱化文字" to colors.contentMuted,
         "边框" to colors.border,
         "强调色" to colors.accent,
+        "收入" to colors.income,
+        "支出" to colors.expense,
+        "资产" to colors.asset,
+        "转账" to colors.transfer,
+        "提醒" to colors.warning,
+        "分类 A" to colors.categoryA,
+        "分类 B" to colors.categoryB,
+        "分类 C" to colors.categoryC,
     )
     Column(verticalArrangement = Arrangement.spacedBy(LedgerSpacing.xxs)) {
         samples.chunked(2).forEach { row ->

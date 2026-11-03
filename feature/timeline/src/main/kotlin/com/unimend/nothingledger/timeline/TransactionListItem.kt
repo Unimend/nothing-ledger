@@ -86,9 +86,9 @@ public fun TransactionListItem(
             Text(
                 transaction.timelineAmount(),
                 color = if (transaction.type == TransactionType.EXPENSE) {
-                    NothingLedgerTheme.colors.accent
+                    NothingLedgerTheme.colors.expense
                 } else {
-                    NothingLedgerTheme.colors.contentPrimary
+                    NothingLedgerTheme.colors.income
                 },
                 style = MaterialTheme.typography.labelLarge,
                 textAlign = TextAlign.End,
