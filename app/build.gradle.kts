@@ -11,8 +11,8 @@ android {
         applicationId = "com.unimend.nothingledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.0.8-entry-flow"
+        versionCode = 9
+        versionName = "0.1.0-four-page-shell"
     }
 
     compileOptions {

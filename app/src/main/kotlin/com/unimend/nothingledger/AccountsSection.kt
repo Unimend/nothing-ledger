@@ -148,5 +148,13 @@ private fun formatBalance(item: AccountListItem): String {
     val value = item.currentBalance.minorUnits
     val sign = if (value < 0) "−" else ""
     val absolute = kotlin.math.abs(value)
+    val major = absolute.toDouble() / 100.0
+    val compact = when {
+        major >= 1_000_000_000 -> "%.2fB".format(major / 1_000_000_000)
+        major >= 1_000_000 -> "%.2fM".format(major / 1_000_000)
+        major >= 100_000 -> "%.1fK".format(major / 1_000)
+        else -> null
+    }
+    if (compact != null) return "$sign¥$compact"
     return "$sign¥%,d.%02d".format(absolute / 100, absolute % 100)
 }

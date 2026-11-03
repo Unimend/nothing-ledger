@@ -8,8 +8,9 @@ import java.util.Currency
 public enum class EntryMode { EXPENSE, INCOME, TRANSFER }
 
 /**
- * Keypad amount represented as minor-unit digits. "1234" means 12.34 for CNY.
- * No floating-point value exists anywhere in the input session.
+ * Keypad amount represented exactly as the major-unit text the user enters.
+ * "123" means 123.00 and "1.23" means 1.23 for a two-decimal currency.
+ * Conversion to minor units uses integer arithmetic; no floating-point value exists.
  */
 public data class AmountInput(
     public val digits: String = "",

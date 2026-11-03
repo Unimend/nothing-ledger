@@ -140,8 +140,23 @@ Compose ← UiState ← StateFlow ← Result / Domain Event
 
 这个结构保证视觉升级不会改变交易规则，导入格式变化不会牵动首页，统计扩展也不会污染记账路径。
 
-顶层导航只使用 `ShellDestination` 表达 `QUICK_ENTRY / TIMELINE / MANAGE`，并由
-`ShellReducer` 统一处理切换和返回。页面文字只是展示内容，不参与导航判断。
+顶层导航只使用 `MainDestination` 表达 `TIMELINE / CALENDAR / STATISTICS / ACCOUNTS`。
+记账和分类管理属于 `OverlayDestination`，覆盖在当前主页面上方；关闭后必须返回原主页面。
+`ShellReducer` 统一处理切换、覆盖页和返回，页面文字不参与导航判断。
+
+当前页面数据流如下：
+
+```text
+流水首页 ← TimelineState ← ObserveTimeline
+日历页面 ← CalendarState ← ObserveCalendar
+统计页面 ← TimelineStatisticsState ← TimelineState.toStatistics
+账户页面 ← AccountsState ← ObserveAccounts
+账单详情 ← TransactionDetailState ← ObserveTransactionDetail
+独立记账页 → EntryAction → EntryReducer → CreateTransaction
+```
+
+多币种金额在日历、统计和账户中始终分桶展示，绝不直接相加。所有可点击表面统一使用
+`ledgerClickable` 或 `LedgerControl`，禁止重新引入系统默认的白色点击涟漪。
 
 具体的代码边界检查结果与后续约束见 [BOUNDARY_AUDIT.md](BOUNDARY_AUDIT.md)。
 

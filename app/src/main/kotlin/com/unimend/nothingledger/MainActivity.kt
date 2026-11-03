@@ -11,17 +11,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,11 +40,15 @@ import com.unimend.nothingledger.categories.CategoryListState
 import com.unimend.nothingledger.entry.EntryAction
 import com.unimend.nothingledger.entry.EntryMode
 import com.unimend.nothingledger.entry.EntryOptionsState
+import com.unimend.nothingledger.model.TransactionId
 import com.unimend.nothingledger.shell.ShellAction
-import com.unimend.nothingledger.shell.ShellDestination
+import com.unimend.nothingledger.shell.MainDestination
+import com.unimend.nothingledger.shell.OverlayDestination
 import com.unimend.nothingledger.shell.ShellEffect
 import com.unimend.nothingledger.shell.ShellReducer
 import com.unimend.nothingledger.shell.ShellState
+import com.unimend.nothingledger.timeline.TimelineHomePage
+import com.unimend.nothingledger.timeline.TransactionDetailState
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
@@ -58,12 +63,23 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(uiState.entry) { selectorsViewModel.updateContext(uiState.entry) }
             val timelineViewModel: TimelineViewModel = viewModel(factory = TimelineViewModel.factory(database))
             val timelineState by timelineViewModel.uiState.collectAsState()
+            val calendarViewModel: CalendarViewModel = viewModel(factory = CalendarViewModel.factory(database))
+            val calendarState by calendarViewModel.state.collectAsState()
             val accountsViewModel: AccountsViewModel = viewModel(factory = AccountsViewModel.factory(database))
             val accountsState by accountsViewModel.accounts.collectAsState()
             val accountEditor by accountsViewModel.editor.collectAsState()
             val categoriesViewModel: CategoriesViewModel = viewModel(factory = CategoriesViewModel.factory(database))
             val categoriesState by categoriesViewModel.state.collectAsState()
             val categoryError by categoriesViewModel.commandError.collectAsState()
+            var selectedTransactionId by remember { mutableStateOf<TransactionId?>(null) }
+            val transactionDetail = selectedTransactionId?.let { id ->
+                val detailViewModel: TransactionDetailViewModel = viewModel(
+                    key = "transaction-detail-${id.value}",
+                    factory = TransactionDetailViewModel.factory(database, id),
+                )
+                val state by detailViewModel.state.collectAsState()
+                state
+            }
             val manageActions = remember(accountsViewModel, categoriesViewModel) {
                 ManageActions(
                     beginAccountCreate = accountsViewModel::beginCreate,
@@ -80,8 +96,17 @@ class MainActivity : ComponentActivity() {
                     uiState = uiState,
                     entryOptions = entryOptions,
                     timelineState = timelineState,
+                    calendarState = calendarState,
                     manageState = ManageUiState(accountsState, accountEditor, categoriesState, categoryError),
                     entryAction = viewModel::dispatch,
+                    calendarActions = CalendarActions(
+                        previousMonth = calendarViewModel::previousMonth,
+                        nextMonth = calendarViewModel::nextMonth,
+                        selectDate = calendarViewModel::selectDate,
+                    ),
+                    transactionDetail = transactionDetail,
+                    onSelectTransaction = { selectedTransactionId = it },
+                    onCloseTransaction = { selectedTransactionId = null },
                     manageActions = manageActions,
                     onExit = ::finish,
                 )
@@ -95,65 +120,92 @@ private fun LedgerApp(
     uiState: EntryUiState,
     entryOptions: EntryOptionsState,
     timelineState: com.unimend.nothingledger.timeline.TimelineState,
+    calendarState: com.unimend.nothingledger.timeline.CalendarState,
     manageState: ManageUiState,
     entryAction: (EntryAction) -> Unit,
+    calendarActions: CalendarActions,
+    transactionDetail: TransactionDetailState?,
+    onSelectTransaction: (TransactionId) -> Unit,
+    onCloseTransaction: () -> Unit,
     manageActions: ManageActions,
     onExit: () -> Unit,
 ) {
-    var destination by rememberSaveable { mutableStateOf(ShellDestination.QUICK_ENTRY) }
+    var shellState by remember { mutableStateOf(ShellState()) }
     fun navigate(action: ShellAction) {
-        val transition = ShellReducer.reduce(ShellState(destination), action)
-        destination = transition.state.destination
+        val transition = ShellReducer.reduce(shellState, action)
+        shellState = transition.state
         if (transition.effect == ShellEffect.ExitRequested) onExit()
     }
-    BackHandler { navigate(ShellAction.NavigateBack) }
+    BackHandler {
+        if (transactionDetail != null) onCloseTransaction() else navigate(ShellAction.NavigateBack)
+    }
 
-    key(destination) {
-        LedgerScreen {
-            AppHeader(uiState, destination)
-            Spacer(Modifier.height(16.dp))
-            ShellNavigation(destination) {
-                navigate(ShellAction.SelectDestination(it))
+    transactionDetail?.let { detail ->
+        TransactionDetailScreen(detail, onCloseTransaction)
+        return
+    }
+
+    when (shellState.overlay) {
+        OverlayDestination.QUICK_ENTRY -> {
+            LedgerScreen {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("新增记账", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                    LedgerControl("返回", { navigate(ShellAction.CloseOverlay) })
+                }
+                Spacer(Modifier.height(24.dp))
+                EntryContent(uiState, entryOptions, entryAction)
             }
+        }
+        OverlayDestination.CATEGORIES -> {
+            LedgerScreen {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("分类管理", color = Color.White, style = MaterialTheme.typography.titleLarge)
+                    LedgerControl("返回", { navigate(ShellAction.CloseOverlay) })
+                }
+                Spacer(Modifier.height(24.dp))
+                CategoriesSection(manageState.categories, manageState.categoryError, manageActions.categoryAction)
+            }
+        }
+        null -> AppScaffold(
+            selected = shellState.selectedMain,
+            onSelect = { navigate(ShellAction.SelectMain(it)) },
+            onAdd = { navigate(ShellAction.OpenOverlay(OverlayDestination.QUICK_ENTRY)) },
+        ) {
+            AppHeader(uiState, shellState.selectedMain)
             Spacer(Modifier.height(24.dp))
-            when (destination) {
-                ShellDestination.QUICK_ENTRY -> EntryContent(uiState, entryOptions, entryAction)
-                ShellDestination.TIMELINE -> TimelineSection(timelineState)
-                ShellDestination.MANAGE -> ManageContent(manageState, manageActions)
+            when (shellState.selectedMain) {
+                MainDestination.TIMELINE -> TimelineHomePage(
+                    state = timelineState,
+                    onTransactionClick = { onSelectTransaction(it.id) },
+                )
+                MainDestination.CALENDAR -> CalendarSection(
+                    state = calendarState,
+                    onPreviousMonth = calendarActions.previousMonth,
+                    onNextMonth = calendarActions.nextMonth,
+                    onSelectDate = calendarActions.selectDate,
+                )
+                MainDestination.STATISTICS -> StatisticsSection(timelineState)
+                MainDestination.ACCOUNTS -> AccountsContent(
+                    manageState,
+                    manageActions,
+                    onCategories = { navigate(ShellAction.OpenOverlay(OverlayDestination.CATEGORIES)) },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun AppHeader(uiState: EntryUiState, destination: ShellDestination) {
+private fun AppHeader(uiState: EntryUiState, destination: MainDestination) {
     val status = uiState.errorMessage?.let { "出错 / ${it.take(18)}" } ?: when (destination) {
-        ShellDestination.QUICK_ENTRY -> when (uiState.status) {
-            SaveStatus.INITIALIZING -> "准备中"
-            SaveStatus.READY -> "可以记账"
-            SaveStatus.SAVING -> "保存中"
-            SaveStatus.SAVED -> "已记下"
-            SaveStatus.ERROR -> "保存失败"
-        }
-        ShellDestination.TIMELINE -> "全部流水"
-        ShellDestination.MANAGE -> "账户与分类"
+        MainDestination.TIMELINE -> "全部流水"
+        MainDestination.CALENDAR -> "按日期查看"
+        MainDestination.STATISTICS -> "收支概览"
+        MainDestination.ACCOUNTS -> "资产与账户"
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text("NOTHING\nLEDGER", color = Color.White, style = MaterialTheme.typography.titleLarge)
         Text(status, color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
-    }
-}
-
-@Composable
-private fun ShellNavigation(selected: ShellDestination, onSelect: (ShellDestination) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(
-            ShellDestination.QUICK_ENTRY to "记账",
-            ShellDestination.TIMELINE to "流水",
-            ShellDestination.MANAGE to "管理",
-        ).forEach { (destination, label) ->
-            LedgerControl(label, { onSelect(destination) }, Modifier.weight(1f), accent = destination == selected)
-        }
     }
 }
 
@@ -168,9 +220,12 @@ private fun EntryContent(
         dispatch(EntryAction.ChangeMode(mode))
     }
     Spacer(Modifier.height(24.dp))
-    LedgerAmountText("¥ ${state.amount.displayText}", Modifier.fillMaxWidth())
     EntrySelectorsSection(state, entryOptions, dispatch)
-    Spacer(Modifier.height(20.dp))
+    Spacer(Modifier.height(16.dp))
+    EntryNoteField(state.note) { dispatch(EntryAction.ChangeNote(it)) }
+    Spacer(Modifier.height(16.dp))
+    LedgerAmountText("¥ ${state.amount.displayText}", Modifier.fillMaxWidth())
+    Spacer(Modifier.height(12.dp))
     Keypad(
         onDigit = { dispatch(EntryAction.EnterDigit(it)) },
         onDecimal = { dispatch(EntryAction.EnterDecimalSeparator) },
@@ -187,11 +242,39 @@ private fun EntryContent(
     }
 }
 
+@Composable
+private fun EntryNoteField(value: String, onValueChange: (String) -> Unit) {
+    BasicTextField(
+        value = value,
+        onValueChange = { onValueChange(it.take(500)) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(NothingLedgerTheme.colors.surfaceRaised)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        singleLine = true,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
+        decorationBox = { field ->
+            Box {
+                if (value.isEmpty()) {
+                    Text("备注（可选）", color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.bodyLarge)
+                }
+                field()
+            }
+        },
+    )
+}
+
 private data class ManageUiState(
     val accounts: AccountsState,
     val accountEditor: AccountEditorState,
     val categories: CategoryListState,
     val categoryError: String?,
+)
+
+private data class CalendarActions(
+    val previousMonth: () -> Unit,
+    val nextMonth: () -> Unit,
+    val selectDate: (java.time.LocalDate) -> Unit,
 )
 
 private data class ManageActions(
@@ -205,8 +288,12 @@ private data class ManageActions(
 )
 
 @Composable
-private fun ManageContent(state: ManageUiState, actions: ManageActions) {
-    AccountsSection(
+private fun AccountsContent(
+    state: ManageUiState,
+    actions: ManageActions,
+    onCategories: () -> Unit,
+) {
+    AccountsHomeSection(
         accounts = state.accounts,
         editor = state.accountEditor,
         onBeginCreate = actions.beginAccountCreate,
@@ -215,9 +302,8 @@ private fun ManageContent(state: ManageUiState, actions: ManageActions) {
         onSave = actions.saveAccount,
         onCancel = actions.cancelAccount,
         onArchive = actions.archiveAccount,
+        onOpenCategories = onCategories,
     )
-    Spacer(Modifier.height(32.dp))
-    CategoriesSection(state.categories, state.categoryError, actions.categoryAction)
 }
 
 @Composable

@@ -39,6 +39,22 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
+public fun Modifier.ledgerClickable(
+    enabled: Boolean = true,
+    role: Role? = Role.Button,
+    onClick: () -> Unit,
+): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    return clickable(
+        interactionSource = interactionSource,
+        indication = null,
+        enabled = enabled,
+        role = role,
+        onClick = onClick,
+    )
+}
+
+@Composable
 public fun LedgerScreen(
     modifier: Modifier = Modifier,
     scrollable: Boolean = true,
@@ -116,7 +132,6 @@ public fun LedgerControl(
 ) {
     val colors = NothingLedgerTheme.colors
     val shape = RoundedCornerShape(LedgerRadius.control)
-    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
             .defaultMinSize(
@@ -132,13 +147,7 @@ public fun LedgerControl(
                 },
             )
             .semantics { contentDescription = accessibilityLabel }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                enabled = enabled,
-                role = Role.Button,
-                onClick = onClick,
-            ),
+            .ledgerClickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -38,19 +38,19 @@ internal fun EntrySelectorsSection(
             is EntryOptionsState.Failure -> SelectorMessage("读取失败 / ${optionsState.message.take(36)}", alert = true)
             is EntryOptionsState.Ready -> when (entry.mode) {
                 EntryMode.EXPENSE -> {
+                    CategorySelector(optionsState.options.categories, entry) { category ->
+                        onAction(EntryAction.SelectCategory(category.id))
+                    }
                     AccountSelector("付款账户", optionsState.options.sourceAccounts, entry.sourceAccountId) { account ->
                         onAction(EntryAction.SelectSourceAccount(account.id))
                     }
-                    CategorySelector(optionsState.options.categories, entry) { category ->
-                        onAction(EntryAction.SelectCategory(category.id))
-                    }
                 }
                 EntryMode.INCOME -> {
-                    AccountSelector("收款账户", optionsState.options.destinationAccounts, entry.destinationAccountId) { account ->
-                        onAction(EntryAction.SelectDestinationAccount(account.id))
-                    }
                     CategorySelector(optionsState.options.categories, entry) { category ->
                         onAction(EntryAction.SelectCategory(category.id))
+                    }
+                    AccountSelector("收款账户", optionsState.options.destinationAccounts, entry.destinationAccountId) { account ->
+                        onAction(EntryAction.SelectDestinationAccount(account.id))
                     }
                 }
                 EntryMode.TRANSFER -> {
