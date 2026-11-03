@@ -1,6 +1,5 @@
 package com.unimend.nothingledger
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -33,12 +32,13 @@ import com.unimend.nothingledger.design.GestureAxisLock
 import com.unimend.nothingledger.design.HorizontalSwipeAction
 import com.unimend.nothingledger.design.HorizontalSwipeConfig
 import com.unimend.nothingledger.design.HorizontalSwipeState
-import com.unimend.nothingledger.design.ledgerClickable
 import com.unimend.nothingledger.model.Transaction
-import com.unimend.nothingledger.timeline.CalendarDay
+import com.unimend.nothingledger.timeline.CalendarDayCell
+import com.unimend.nothingledger.timeline.CalendarDayCellState
 import com.unimend.nothingledger.timeline.CalendarMonth
 import com.unimend.nothingledger.timeline.CalendarState
 import com.unimend.nothingledger.timeline.TransactionList
+import com.unimend.nothingledger.timeline.toCellState
 import java.time.LocalDate
 
 @Composable
@@ -114,16 +114,14 @@ private fun CalendarGrid(
         month.weeks.forEach { week ->
             Row(Modifier.fillMaxWidth()) {
                 week.forEach { day ->
-                    if (day == null) {
-                        Spacer(Modifier.weight(1f).height(58.dp))
-                    } else {
-                        CalendarCell(
-                            day = day,
+                    CalendarDayCell(
+                        state = day?.toCellState(
                             selected = day.date == month.query.selectedDate,
-                            onClick = { onSelectDate(day.date) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
+                            today = LocalDate.now(),
+                        ) ?: CalendarDayCellState.Empty,
+                        onClick = onSelectDate,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
@@ -171,40 +169,6 @@ private fun Modifier.calendarMonthSwipe(
 }
 
 @Composable
-private fun CalendarCell(
-    day: CalendarDay,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier,
-) {
-    val total = day.totals.singleOrNull()
-    Box(
-        modifier = modifier
-            .height(58.dp)
-            .padding(1.dp)
-            .background(if (selected) NothingLedgerTheme.colors.surfaceRaised else Color.Transparent)
-            .ledgerClickable(onClick = onClick),
-    ) {
-        Column(Modifier.padding(horizontal = 4.dp, vertical = 5.dp)) {
-            Text(
-                day.date.dayOfMonth.toString(),
-                color = if (selected) NothingLedgerTheme.colors.accent else Color.White,
-                fontSize = 13.sp,
-            )
-            if (day.transactionCount > 0) {
-                if (total == null) {
-                    Text("MULTI", color = NothingLedgerTheme.colors.contentMuted, fontSize = 8.sp)
-                } else {
-                    if (total.incomeMinor > 0) Text("+${compactMinor(total.incomeMinor)}", color = Color.White, fontSize = 8.sp)
-                    if (total.expenseMinor > 0) Text("-${compactMinor(total.expenseMinor)}", color = NothingLedgerTheme.colors.accent, fontSize = 8.sp)
-                }
-                if (day.hasTransfer) Text("MOVE", color = NothingLedgerTheme.colors.contentMuted, fontSize = 8.sp)
-            }
-        }
-    }
-}
-
-@Composable
 private fun CalendarMessage(message: String, alert: Boolean = false) {
     Box(Modifier.fillMaxWidth().padding(vertical = 18.dp), contentAlignment = Alignment.Center) {
         Text(
@@ -220,11 +184,5 @@ private fun CalendarState.monthLabel(): String = when (this) {
     is CalendarState.Ready -> month.query.month
     is CalendarState.Failure -> query.month
 }.toString().replace("-", " / ")
-
-private fun compactMinor(minor: Long): String = when {
-    minor >= 100_000_000 -> "${minor / 100_000_000}m"
-    minor >= 100_000 -> "${minor / 100_000}k"
-    else -> "${minor / 100}"
-}
 
 private val WEEKDAY_LABELS = listOf("MO", "TU", "WE", "TH", "FR", "SA", "SU")

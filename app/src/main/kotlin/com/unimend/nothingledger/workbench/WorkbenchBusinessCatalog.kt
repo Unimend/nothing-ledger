@@ -35,7 +35,7 @@ internal fun WorkbenchBusinessCatalog(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
-        CatalogHeading("BUSINESS / TRANSACTION ITEM", "同一个组件的完整状态矩阵")
+        CatalogHeading("业务组件 / 单条流水", "同一个组件的完整状态矩阵")
         TransactionSamples.all.forEach { sample ->
             CatalogLabel(sample.label)
             TransactionListItem(
@@ -47,20 +47,20 @@ internal fun WorkbenchBusinessCatalog(
         }
 
         Spacer(Modifier.height(22.dp))
-        CatalogHeading("BUSINESS / TRANSACTION LIST", "页面只能提供数据，不能重新绘制流水")
-        CatalogLabel("POPULATED / MIXED TYPES")
+        CatalogHeading("业务组件 / 流水列表", "页面只能提供数据，不能重新绘制流水")
+        CatalogLabel("有数据 / 混合类型")
         TransactionList(
             transactions = TransactionSamples.standardList,
             onTransactionClick = onTransactionClick,
             zoneId = WORKBENCH_ZONE,
         )
         Spacer(Modifier.height(12.dp))
-        CatalogLabel("EMPTY")
+        CatalogLabel("空列表")
         LedgerSurface(Modifier.fillMaxWidth()) {
             TransactionList(
                 transactions = emptyList(),
                 onTransactionClick = onTransactionClick,
-                emptyMessage = "NO TRANSACTIONS / SAMPLE",
+                emptyMessage = "暂无流水 / 样本",
                 zoneId = WORKBENCH_ZONE,
             )
         }
@@ -128,11 +128,11 @@ internal object TransactionSamples {
     )
 
     val all: List<TransactionSample> = listOf(
-        TransactionSample("EXPENSE / NOTE", expense),
-        TransactionSample("INCOME / NOTE", income),
-        TransactionSample("TRANSFER / NO NOTE", transfer),
-        TransactionSample("LONG NOTE", longText),
-        TransactionSample("EXTREME AMOUNT", extremeAmount),
+        TransactionSample("支出 / 有备注", expense),
+        TransactionSample("收入 / 有备注", income),
+        TransactionSample("转账 / 无备注", transfer),
+        TransactionSample("超长备注", longText),
+        TransactionSample("极端金额", extremeAmount),
     )
 
     val standardList: List<Transaction> = listOf(expense, income, transfer)

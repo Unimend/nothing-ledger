@@ -43,28 +43,28 @@ internal fun WorkbenchComponentCatalog(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         CatalogHeader()
-        CatalogSection("01 / COLOR TOKENS", "所有界面只能从这一组语义颜色读取。") {
+        CatalogSection("01 / 颜色令牌", "所有界面只能从这一组语义颜色读取。") {
             ColorTokenGrid()
         }
-        CatalogSection("02 / TYPE", "中文正文使用系统字形，数字与英文标签使用 Doto。") {
+        CatalogSection("02 / 字体", "中文正文使用系统字形，数字与英文标签使用 Doto。") {
             TypographySamples()
         }
-        CatalogSection("03 / SPACING + RADIUS", "间距和圆角用同一套刻度，不在页面写临时数值。") {
+        CatalogSection("03 / 间距与圆角", "间距和圆角用同一套刻度，不在页面写临时数值。") {
             SpacingSamples()
         }
-        CatalogSection("04 / CONTROLS", "默认、强调、不可用与长文字必须同时成立。") {
+        CatalogSection("04 / 按钮与操作", "默认、强调、不可用与长文字必须同时成立。") {
             ControlSamples(onAction)
         }
-        CatalogSection("05 / SURFACES", "普通层和抬高层只表达层级，不承担业务状态。") {
+        CatalogSection("05 / 内容容器", "普通层和抬高层只表达层级，不承担业务状态。") {
             SurfaceSamples()
         }
-        CatalogSection("06 / AMOUNTS", "金额组件必须覆盖常规、负数、超长与强调状态。") {
+        CatalogSection("06 / 金额", "金额组件必须覆盖常规、负数、超长与强调状态。") {
             AmountSamples()
         }
-        CatalogSection("07 / STATUS", "加载、空白、成功和错误使用同一状态语言。") {
+        CatalogSection("07 / 状态", "加载、空白、成功和错误使用同一状态语言。") {
             StatusSamples()
         }
-        CatalogSection("08 / TEXT STRESS", "组件必须在真实中文、英文和超长内容下保持稳定。") {
+        CatalogSection("08 / 文字压力测试", "组件必须在真实中文、英文和超长内容下保持稳定。") {
             TextStressSamples()
         }
         Spacer(Modifier.height(LedgerSpacing.xxl))
@@ -84,7 +84,7 @@ private fun CatalogHeader() {
             Text("NOTHING", color = Color.White, style = MaterialTheme.typography.titleLarge)
             Text("LEDGER / LAB", color = NothingLedgerTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
         }
-        LedgerStatusMarker("FOUNDATION", LedgerStatus.ACTIVE)
+        LedgerStatusMarker("基础已建立", LedgerStatus.ACTIVE)
     }
     Spacer(Modifier.height(LedgerSpacing.sm))
     Text(
@@ -112,14 +112,14 @@ private fun CatalogSection(
 private fun ColorTokenGrid() {
     val colors = LedgerColorTokens.Dark
     val samples = listOf(
-        "BACKGROUND" to colors.background,
-        "SURFACE" to colors.surface,
-        "RAISED" to colors.surfaceRaised,
-        "PRIMARY" to colors.contentPrimary,
-        "SECONDARY" to colors.contentSecondary,
-        "MUTED" to colors.contentMuted,
-        "BORDER" to colors.border,
-        "ACCENT" to colors.accent,
+        "背景" to colors.background,
+        "普通容器" to colors.surface,
+        "抬高容器" to colors.surfaceRaised,
+        "主要文字" to colors.contentPrimary,
+        "次要文字" to colors.contentSecondary,
+        "弱化文字" to colors.contentMuted,
+        "边框" to colors.border,
+        "强调色" to colors.accent,
     )
     Column(verticalArrangement = Arrangement.spacedBy(LedgerSpacing.xxs)) {
         samples.chunked(2).forEach { row ->
@@ -153,7 +153,7 @@ private fun TypographySamples() {
             Text("记一笔真实生活", color = Color.White, style = MaterialTheme.typography.headlineMedium)
             Text("账户与账单使用清晰的中文正文。", color = Color.White, style = MaterialTheme.typography.bodyLarge)
             Text("DOTO / 2026 / 11 / 03", color = NothingLedgerTheme.colors.accent, style = LedgerTextStyles.latinLabel)
-            Text("SECONDARY INFORMATION", color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelMedium)
+            Text("辅助信息 / SECONDARY", color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -177,7 +177,7 @@ private fun SpacingSamples() {
                 }
             }
             Text(
-                "RADIUS / ${LedgerRadius.control.value.toInt()} · ${LedgerRadius.surface.value.toInt()} · ${LedgerRadius.prominent.value.toInt()}",
+                "圆角 / ${LedgerRadius.control.value.toInt()} · ${LedgerRadius.surface.value.toInt()} · ${LedgerRadius.prominent.value.toInt()}",
                 color = NothingLedgerTheme.colors.contentMuted,
                 style = MaterialTheme.typography.labelMedium,
             )
@@ -189,11 +189,11 @@ private fun SpacingSamples() {
 private fun ControlSamples(onAction: (WorkbenchSampleAction) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(LedgerSpacing.xs)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LedgerSpacing.xs)) {
-            LedgerControl("NORMAL", { onAction(WorkbenchSampleAction.NORMAL_CONTROL) }, Modifier.weight(1f))
-            LedgerControl("ACCENT", { onAction(WorkbenchSampleAction.ACCENT_CONTROL) }, Modifier.weight(1f), accent = true)
+            LedgerControl("普通", { onAction(WorkbenchSampleAction.NORMAL_CONTROL) }, Modifier.weight(1f))
+            LedgerControl("强调", { onAction(WorkbenchSampleAction.ACCENT_CONTROL) }, Modifier.weight(1f), accent = true)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(LedgerSpacing.xs)) {
-            LedgerControl("DISABLED", {}, Modifier.weight(1f), enabled = false)
+            LedgerControl("不可用", {}, Modifier.weight(1f), enabled = false)
             LedgerControl("返回", {}, Modifier.weight(1f))
         }
         LedgerControl(
@@ -209,7 +209,7 @@ private fun SurfaceSamples() {
     Column(verticalArrangement = Arrangement.spacedBy(LedgerSpacing.xs)) {
         LedgerSurface(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(LedgerSpacing.md)) {
-                Text("SURFACE / DEFAULT", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                Text("普通容器", color = Color.White, style = MaterialTheme.typography.labelLarge)
                 Text("列表、分组和普通信息容器。", color = NothingLedgerTheme.colors.contentMuted)
             }
         }
@@ -217,7 +217,7 @@ private fun SurfaceSamples() {
             Box(Modifier.fillMaxWidth().height(96.dp)) {
                 DitherField(Modifier.fillMaxWidth().height(96.dp), color = NothingLedgerTheme.colors.border)
                 Text(
-                    "SURFACE / RAISED",
+                    "抬高容器",
                     modifier = Modifier.align(Alignment.Center).background(Color.Black).padding(8.dp),
                     color = Color.White,
                     style = MaterialTheme.typography.labelLarge,
@@ -243,10 +243,10 @@ private fun AmountSamples() {
 private fun StatusSamples() {
     LedgerSurface(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(LedgerSpacing.md), verticalArrangement = Arrangement.spacedBy(LedgerSpacing.sm)) {
-            LedgerStatusMarker("READY / ACTIVE", LedgerStatus.ACTIVE)
-            LedgerStatusMarker("READING / LOADING", LedgerStatus.MUTED)
-            LedgerStatusMarker("NO DATA / EMPTY", LedgerStatus.MUTED)
-            LedgerStatusMarker("FAILED / RETRY", LedgerStatus.ALERT)
+            LedgerStatusMarker("正常 / ACTIVE", LedgerStatus.ACTIVE)
+            LedgerStatusMarker("读取中 / LOADING", LedgerStatus.MUTED)
+            LedgerStatusMarker("暂无数据 / EMPTY", LedgerStatus.MUTED)
+            LedgerStatusMarker("读取失败 / RETRY", LedgerStatus.ALERT)
         }
     }
 }

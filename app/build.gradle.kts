@@ -11,8 +11,8 @@ android {
         applicationId = "com.unimend.nothingledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.3.0-component-workbench"
+        versionCode = 16
+        versionName = "0.3.1-calendar-layout-drafts"
     }
 
     compileOptions {
