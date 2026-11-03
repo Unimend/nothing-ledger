@@ -32,6 +32,8 @@ import com.unimend.nothingledger.workbench.WorkbenchBusinessCatalog
 import com.unimend.nothingledger.workbench.WorkbenchCalendarCatalog
 import com.unimend.nothingledger.workbench.WorkbenchComponentCatalog
 import com.unimend.nothingledger.workbench.WorkbenchLayoutDrafts
+import com.unimend.nothingledger.workbench.WorkbenchLayoutDraftScreen
+import com.unimend.nothingledger.workbench.WorkbenchLayoutDraft
 
 /** Database-free catalog. Product pages may consume its components; the catalog never consumes product state. */
 @Composable
@@ -42,12 +44,29 @@ internal fun WorkbenchScreen(
     var state by remember { mutableStateOf(WorkbenchState()) }
     val dispatch: (WorkbenchAction) -> Unit = { state = WorkbenchReducer.reduce(state, it) }
     BackHandler {
-        if (state.focusedSection != null) dispatch(WorkbenchAction.CloseFocus) else onExit()
+        when {
+            state.focusedDraft != null -> dispatch(WorkbenchAction.CloseDraft)
+            state.focusedSection != null -> dispatch(WorkbenchAction.CloseFocus)
+            else -> onExit()
+        }
+    }
+
+    val focusedDraft = state.focusedDraft
+    if (focusedDraft != null) {
+        WorkbenchLayoutDraftScreen(
+            draft = focusedDraft,
+            onBack = { dispatch(WorkbenchAction.CloseDraft) },
+        )
+        return
     }
 
     val focused = state.focusedSection
     if (focused != null) {
-        FocusedWorkbenchSection(focused, onBack = { dispatch(WorkbenchAction.CloseFocus) })
+        FocusedWorkbenchSection(
+            section = focused,
+            onBack = { dispatch(WorkbenchAction.CloseFocus) },
+            onOpenDraft = { dispatch(WorkbenchAction.OpenDraft(it)) },
+        )
         return
     }
 
@@ -63,7 +82,7 @@ internal fun WorkbenchScreen(
         WorkbenchSectionHeader("04", "大界面布局草图") {
             dispatch(WorkbenchAction.Focus(WorkbenchSection.PAGE_FRAMES))
         }
-        WorkbenchLayoutDrafts()
+        WorkbenchLayoutDrafts(onOpenDraft = { dispatch(WorkbenchAction.OpenDraft(it)) })
         WorkbenchGap()
         InteractionTestsSection { dispatch(WorkbenchAction.Focus(WorkbenchSection.INTERACTION_TESTS)) }
         Spacer(Modifier.height(64.dp))
@@ -109,7 +128,11 @@ private fun InteractionTestsSection(onFocus: () -> Unit) {
 }
 
 @Composable
-private fun FocusedWorkbenchSection(section: WorkbenchSection, onBack: () -> Unit) {
+private fun FocusedWorkbenchSection(
+    section: WorkbenchSection,
+    onBack: () -> Unit,
+    onOpenDraft: (WorkbenchLayoutDraft) -> Unit,
+) {
     LedgerScreen {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(section.chineseTitle(), color = Color.White, style = MaterialTheme.typography.titleLarge)
@@ -124,7 +147,7 @@ private fun FocusedWorkbenchSection(section: WorkbenchSection, onBack: () -> Uni
                 WorkbenchGap()
                 WorkbenchCalendarCatalog()
             }
-            WorkbenchSection.PAGE_FRAMES -> WorkbenchLayoutDrafts()
+            WorkbenchSection.PAGE_FRAMES -> WorkbenchLayoutDrafts(onOpenDraft = onOpenDraft)
             WorkbenchSection.INTERACTION_TESTS -> InteractionTestsSection(onFocus = {})
         }
     }

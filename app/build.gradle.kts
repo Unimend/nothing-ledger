@@ -11,8 +11,8 @@ android {
         applicationId = "com.unimend.nothingledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 18
-        versionName = "0.3.3-dot-ripple-transaction"
+        versionCode = 19
+        versionName = "0.3.4-feedback-overlay-fullscreen-drafts"
     }
 
     compileOptions {

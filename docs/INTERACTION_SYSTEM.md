@@ -20,7 +20,9 @@ rememberLedgerLocalSwipeConfig
 统一读取 `rememberLedgerLocalSwipeConfig()`。新增动效必须先进入组件实验室形成独立样本，再由正式组件调用。
 ## 点阵涟漪
 
-- `LedgerDotRippleSurface` 是可点击圆角表面的统一入口。
+- `LedgerFeedbackHost` 是全应用唯一的反馈覆盖层，位于页面与导航结果之上。
+- `LedgerDotRippleSurface` 是可点击圆角表面的统一入口，只负责上报根布局中的触点坐标。
 - 点击反馈只绘制固定尺寸的方形点阵，不改变键帽或卡片本身亮度。
 - 点阵从实际触点向外扩散，时长、点数、点大小与扩散半径统一由 `LedgerMotionTokens`、`LedgerMotionSpecs` 和 `LedgerRippleTokens` 管理。
-- 组件只负责反馈并发出 `onClick` 事件，不负责决定页面跳转；因此组件实验室可以只演示动效，产品页面可以接入导航系统。
+- 点击事件与覆盖层动画彼此独立：即使事件立即触发导航，动画也会在新页面上方播放完整。
+- 组件不负责决定页面跳转；因此组件实验室可以只演示动效，产品页面可以接入导航系统。

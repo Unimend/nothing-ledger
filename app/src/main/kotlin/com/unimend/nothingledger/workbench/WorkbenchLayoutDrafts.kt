@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.unimend.nothingledger.design.LedgerAmountText
 import com.unimend.nothingledger.design.LedgerControl
+import com.unimend.nothingledger.design.LedgerScreen
 import com.unimend.nothingledger.design.LedgerSpacing
 import com.unimend.nothingledger.design.LedgerSurface
 import com.unimend.nothingledger.design.NothingLedgerTheme
@@ -32,42 +33,89 @@ import java.time.ZoneId
  * Database-free layout sketches. They deliberately compose production primitives and business
  * components, but own no navigation or feature state. A selected sketch may later become a page.
  */
+internal enum class WorkbenchLayoutDraft(
+    val index: String,
+    val title: String,
+    val description: String,
+) {
+    TIMELINE("01", "流水首页", "月度概览、日期分组与流水列表"),
+    CALENDAR("02", "日历", "完整月份与选中日期流水"),
+    STATISTICS("03", "统计", "收支汇总与分类比例"),
+    ACCOUNTS("04", "账户", "净资产与账户列表"),
+    DETAIL("05", "账单详情", "单条账单的完整信息"),
+    EDITOR("06", "记账编辑", "金额、分类、账户与数字键盘"),
+}
+
 @Composable
-internal fun WorkbenchLayoutDrafts(modifier: Modifier = Modifier) {
+internal fun WorkbenchLayoutDrafts(
+    onOpenDraft: (WorkbenchLayoutDraft) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier.fillMaxWidth()) {
         Text("大界面草图", color = Color.White, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(LedgerSpacing.xxs))
         Text(
-            "先比较整体信息层级与排布，不在这里接入真实功能。",
+            "每个草图都以完整手机页面单独预览，不在目录中压缩展示。",
             color = NothingLedgerTheme.colors.contentMuted,
             style = MaterialTheme.typography.bodyMedium,
         )
         Spacer(Modifier.height(LedgerSpacing.md))
-        DraftFrame("草图 01 / 流水首页") { TimelineDraft() }
-        DraftGap()
-        DraftFrame("草图 02 / 日历") { CalendarDraft() }
-        DraftGap()
-        DraftFrame("草图 03 / 统计") { StatisticsDraft() }
-        DraftGap()
-        DraftFrame("草图 04 / 账户") { AccountsDraft() }
-        DraftGap()
-        DraftFrame("草图 05 / 账单详情") { DetailDraft() }
-        DraftGap()
-        DraftFrame("草图 06 / 记账编辑") { EditorDraft() }
+        WorkbenchLayoutDraft.entries.forEach { draft ->
+            DraftEntry(draft = draft, onOpen = { onOpenDraft(draft) })
+            Spacer(Modifier.height(LedgerSpacing.xs))
+        }
     }
 }
 
 @Composable
-private fun DraftFrame(title: String, content: @Composable () -> Unit) {
+private fun DraftEntry(draft: WorkbenchLayoutDraft, onOpen: () -> Unit) {
     LedgerSurface(Modifier.fillMaxWidth(), elevated = true) {
-        Column(Modifier.fillMaxWidth().padding(LedgerSpacing.md)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium)
-                Text("仅供布局预览", color = NothingLedgerTheme.colors.accent, style = MaterialTheme.typography.labelMedium)
+        Row(
+            Modifier.fillMaxWidth().padding(LedgerSpacing.md),
+            horizontalArrangement = Arrangement.spacedBy(LedgerSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(draft.index, color = NothingLedgerTheme.colors.accent, style = MaterialTheme.typography.titleLarge)
+            Column(Modifier.weight(1f)) {
+                Text(draft.title, color = Color.White, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    draft.description,
+                    color = NothingLedgerTheme.colors.contentMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
-            Spacer(Modifier.height(LedgerSpacing.md))
-            content()
+            LedgerControl("全屏查看", onOpen)
         }
+    }
+}
+
+@Composable
+internal fun WorkbenchLayoutDraftScreen(
+    draft: WorkbenchLayoutDraft,
+    onBack: () -> Unit,
+) {
+    LedgerScreen {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("草图 ${draft.index}", color = NothingLedgerTheme.colors.accent, style = MaterialTheme.typography.labelLarge)
+                Text(draft.title, color = Color.White, style = MaterialTheme.typography.titleLarge)
+            }
+            LedgerControl("返回目录", onBack)
+        }
+        Spacer(Modifier.height(LedgerSpacing.lg))
+        when (draft) {
+            WorkbenchLayoutDraft.TIMELINE -> TimelineDraft()
+            WorkbenchLayoutDraft.CALENDAR -> CalendarDraft()
+            WorkbenchLayoutDraft.STATISTICS -> StatisticsDraft()
+            WorkbenchLayoutDraft.ACCOUNTS -> AccountsDraft()
+            WorkbenchLayoutDraft.DETAIL -> DetailDraft()
+            WorkbenchLayoutDraft.EDITOR -> EditorDraft()
+        }
+        Spacer(Modifier.height(64.dp))
     }
 }
 
@@ -229,11 +277,6 @@ private fun DraftDetailRow(label: String, value: String) {
         Spacer(Modifier.width(LedgerSpacing.md))
         Text(value, color = Color.White)
     }
-}
-
-@Composable
-private fun DraftGap() {
-    Spacer(Modifier.height(LedgerSpacing.lg))
 }
 
 private val DRAFT_ZONE: ZoneId = ZoneId.of("Asia/Shanghai")

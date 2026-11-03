@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.unimend.nothingledger.design.DitherField
 import com.unimend.nothingledger.design.LedgerAmountText
 import com.unimend.nothingledger.design.LedgerControl
+import com.unimend.nothingledger.design.LedgerFeedbackHost
 import com.unimend.nothingledger.design.LedgerScreen
 import com.unimend.nothingledger.design.NothingLedgerTheme
 import com.unimend.nothingledger.accounts.AccountListItem
@@ -64,15 +65,17 @@ class MainActivity : ComponentActivity() {
                 rootNavigation = RootNavigationReducer.reduce(rootNavigation, action)
             }
             NothingLedgerTheme {
-                when (rootNavigation.surface) {
-                    RootSurface.WORKBENCH -> WorkbenchScreen(
-                        onOpenProductPreview = { navigateRoot(RootNavigationAction.OpenProductPreview) },
-                        onExit = ::finish,
-                    )
-                    RootSurface.PRODUCT_PREVIEW -> ProductPreview(
-                        database = (application as LedgerApplication).database,
-                        onExitPreview = { navigateRoot(RootNavigationAction.CloseProductPreview) },
-                    )
+                LedgerFeedbackHost {
+                    when (rootNavigation.surface) {
+                        RootSurface.WORKBENCH -> WorkbenchScreen(
+                            onOpenProductPreview = { navigateRoot(RootNavigationAction.OpenProductPreview) },
+                            onExit = ::finish,
+                        )
+                        RootSurface.PRODUCT_PREVIEW -> ProductPreview(
+                            database = (application as LedgerApplication).database,
+                            onExitPreview = { navigateRoot(RootNavigationAction.CloseProductPreview) },
+                        )
+                    }
                 }
             }
         }
