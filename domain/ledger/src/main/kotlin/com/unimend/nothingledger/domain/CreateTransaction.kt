@@ -12,7 +12,7 @@ public class CreateTransaction(
     private val clock: Clock,
     private val newId: () -> TransactionId = { TransactionId(UUID.randomUUID()) },
 ) {
-    public operator fun invoke(draft: TransactionDraft): Transaction {
+    public suspend operator fun invoke(draft: TransactionDraft): Transaction {
         val participatingAccounts = listOfNotNull(draft.sourceAccountId, draft.destinationAccountId)
             .distinct()
             .associateWith { id -> requireNotNull(accounts.findById(id)) { "Account does not exist" } }

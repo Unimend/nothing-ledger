@@ -27,6 +27,7 @@ import java.util.Currency
 import java.util.UUID
 import com.unimend.nothingledger.domain.CreateTransaction
 import com.unimend.nothingledger.domain.TransactionDraft
+import kotlinx.coroutines.runBlocking
 
 @RunWith(AndroidJUnit4::class)
 class LedgerDatabaseTest {
@@ -42,7 +43,7 @@ class LedgerDatabaseTest {
 
     @After fun closeDatabase() = database.close()
 
-    @Test fun transactionRoundTripAndSoftDelete() {
+    @Test fun transactionRoundTripAndSoftDelete() = runBlocking {
         val accountId = UUID.randomUUID()
         val categoryId = UUID.randomUUID()
         database.accountDao().insert(
@@ -74,7 +75,7 @@ class LedgerDatabaseTest {
         assertNull(repository.findById(transaction.id))
     }
 
-    @Test fun domainCoordinatorPersistsThroughAllRoomRepositories() {
+    @Test fun domainCoordinatorPersistsThroughAllRoomRepositories() = runBlocking {
         val account = Account(
             AccountId(UUID.randomUUID()), "Wallet", AccountKind.PAYMENT,
             AccountBalance(0, Currency.getInstance("CNY")), 0, null,

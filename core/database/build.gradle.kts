@@ -26,6 +26,7 @@ ksp {
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":domain:ledger"))
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
 

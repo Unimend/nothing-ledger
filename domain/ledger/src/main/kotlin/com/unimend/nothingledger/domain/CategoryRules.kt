@@ -18,7 +18,7 @@ public class CreateCategory(
     private val repository: CategoryRepository,
     private val newId: () -> CategoryId = { CategoryId(UUID.randomUUID()) },
 ) {
-    public operator fun invoke(draft: CategoryDraft): Category {
+    public suspend operator fun invoke(draft: CategoryDraft): Category {
         val parent = draft.parentId?.let { parentId ->
             requireNotNull(repository.findById(parentId)) { "Parent category does not exist" }
         }
@@ -44,27 +44,31 @@ public class ArchiveCategory(
     private val repository: CategoryRepository,
     private val clock: Clock,
 ) {
-    public operator fun invoke(id: CategoryId): Category {
+    public suspend operator fun invoke(id: CategoryId): Category {
         val category = requireNotNull(repository.findById(id)) { "Category does not exist" }
         if (category.isArchived) return category
-        return category.copy(archivedAt = clock.instant()).also(repository::save)
+        val archived = category.copy(archivedAt = clock.instant())
+        repository.save(archived)
+        return archived
     }
 }
 
 public class ReorderCategory(
     private val repository: CategoryRepository,
 ) {
-    public operator fun invoke(id: CategoryId, displayOrder: Int): Category {
+    public suspend operator fun invoke(id: CategoryId, displayOrder: Int): Category {
         require(displayOrder >= 0) { "Category display order must not be negative" }
         val category = requireNotNull(repository.findById(id)) { "Category does not exist" }
-        return category.copy(displayOrder = displayOrder).also(repository::save)
+        val reordered = category.copy(displayOrder = displayOrder)
+        repository.save(reordered)
+        return reordered
     }
 }
 
 public class RequireUsableCategory(
     private val repository: CategoryRepository,
 ) {
-    public operator fun invoke(id: CategoryId, transactionType: TransactionType): Category {
+    public suspend operator fun invoke(id: CategoryId, transactionType: TransactionType): Category {
         require(transactionType != TransactionType.TRANSFER) { "Transfer must not have a category" }
         val category = requireNotNull(repository.findById(id)) { "Category does not exist" }
         require(!category.isArchived) { "Archived category cannot be used for a new transaction" }

@@ -17,7 +17,9 @@ dependencyResolutionManagement {
 rootProject.name = "NothingLedger"
 
 include(":core:model")
+include(":core:design")
 include(":core:database")
 include(":domain:ledger")
+include(":feature:entry")
 include(":app")
 

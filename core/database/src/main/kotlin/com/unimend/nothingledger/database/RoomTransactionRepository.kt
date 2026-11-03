@@ -11,19 +11,24 @@ import java.time.Clock
 import java.time.Instant
 import java.util.Currency
 import java.util.UUID
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 public class RoomTransactionRepository internal constructor(
     private val dao: TransactionDao,
     private val clock: Clock = Clock.systemUTC(),
 ) : TransactionRepository {
-    override fun save(transaction: Transaction): Unit = dao.insert(transaction.toEntity())
+    override suspend fun save(transaction: Transaction): Unit = dao.insert(transaction.toEntity())
 
-    override fun findById(id: TransactionId): Transaction? =
+    override suspend fun findById(id: TransactionId): Transaction? =
         dao.findActiveById(id.value.toString())?.toDomain()
 
-    override fun softDelete(id: TransactionId) {
+    override suspend fun softDelete(id: TransactionId) {
         dao.softDelete(id.value.toString(), clock.millis())
     }
+
+    override fun observeActive(): Flow<List<Transaction>> =
+        dao.observeActive().map { entities -> entities.map(TransactionEntity::toDomain) }
 }
 
 private fun Transaction.toEntity(): TransactionEntity = TransactionEntity(

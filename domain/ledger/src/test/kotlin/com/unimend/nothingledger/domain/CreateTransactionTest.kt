@@ -20,6 +20,9 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.Currency
 import java.util.UUID
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 
 class CreateTransactionTest {
     private val now = Instant.parse("2026-11-03T06:00:00Z")
@@ -34,7 +37,7 @@ class CreateTransactionTest {
         Clock.fixed(now, ZoneOffset.UTC),
     ) { id }
 
-    @Test fun `expense is validated normalized and saved once`() {
+    @Test fun `expense is validated normalized and saved once`() = runBlocking {
         val account = AccountId(UUID.randomUUID())
         val category = CategoryId(UUID.randomUUID())
         accountRepository.save(Account(account, "Wallet", AccountKind.PAYMENT, AccountBalance(0, Currency.getInstance("CNY")), 0, null))
@@ -53,7 +56,7 @@ class CreateTransactionTest {
         assertEquals(result, repository.saved.single())
     }
 
-    @Test fun `blank note becomes absent`() {
+    @Test fun `blank note becomes absent`() = runBlocking {
         val account = AccountId(UUID.randomUUID())
         val category = CategoryId(UUID.randomUUID())
         accountRepository.save(Account(account, "Bank", AccountKind.BANK, AccountBalance(0, Currency.getInstance("CNY")), 0, null))
@@ -71,11 +74,11 @@ class CreateTransactionTest {
         assertNull(result.note)
     }
 
-    @Test fun `transfer to same account is rejected before persistence`() {
+    @Test fun `transfer to same account is rejected before persistence`() = runBlocking {
         val account = AccountId(UUID.randomUUID())
         accountRepository.save(Account(account, "Wallet", AccountKind.PAYMENT, AccountBalance(0, Currency.getInstance("CNY")), 0, null))
         assertThrows(IllegalArgumentException::class.java) {
-            create(
+            runBlocking { create(
                 TransactionDraft(
                     type = TransactionType.TRANSFER,
                     money = Money(100, Currency.getInstance("CNY")),
@@ -83,28 +86,31 @@ class CreateTransactionTest {
                     sourceAccountId = account,
                     destinationAccountId = account,
                 ),
-            )
+            ) }
         }
         assertEquals(0, repository.saved.size)
     }
 
     private class MemoryRepository : TransactionRepository {
         val saved = mutableListOf<Transaction>()
-        override fun save(transaction: Transaction) { saved += transaction }
-        override fun findById(id: TransactionId): Transaction? = saved.find { it.id == id }
-        override fun softDelete(id: TransactionId) = Unit
+        override suspend fun save(transaction: Transaction) { saved += transaction }
+        override suspend fun findById(id: TransactionId): Transaction? = saved.find { it.id == id }
+        override suspend fun softDelete(id: TransactionId) = Unit
+        override fun observeActive(): Flow<List<Transaction>> = flowOf(saved)
     }
 
     private class MemoryAccountRepository : AccountRepository {
         private val values = mutableMapOf<AccountId, Account>()
-        override fun findById(id: AccountId): Account? = values[id]
-        override fun save(account: Account) { values[account.id] = account }
+        override suspend fun findById(id: AccountId): Account? = values[id]
+        override suspend fun save(account: Account) { values[account.id] = account }
+        override fun observeAll(): Flow<List<Account>> = flowOf(values.values.toList())
     }
 
     private class MemoryCategoryRepository : CategoryRepository {
         private val values = mutableMapOf<CategoryId, Category>()
-        override fun findById(id: CategoryId): Category? = values[id]
-        override fun save(category: Category) { values[category.id] = category }
+        override suspend fun findById(id: CategoryId): Category? = values[id]
+        override suspend fun save(category: Category) { values[category.id] = category }
+        override fun observeAll(): Flow<List<Category>> = flowOf(values.values.toList())
     }
 }
 
