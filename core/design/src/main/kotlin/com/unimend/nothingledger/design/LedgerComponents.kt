@@ -3,12 +3,25 @@ package com.unimend.nothingledger.design
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,8 +30,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+@Composable
+public fun LedgerScreen(
+    modifier: Modifier = Modifier,
+    scrollable: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .background(NothingLedgerTheme.colors.background)
+            .padding(WindowInsets.safeDrawing.asPaddingValues()),
+    ) {
+        val horizontalPadding = if (maxWidth < 360.dp) {
+            LedgerSize.compactScreenPadding
+        } else {
+            LedgerSize.regularScreenPadding
+        }
+        val scrollModifier = if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier
+        Column(
+            modifier = scrollModifier
+                .fillMaxWidth()
+                .padding(horizontal = horizontalPadding)
+                .padding(bottom = LedgerSize.minimumContentBottomSpace),
+            content = content,
+        )
+    }
+}
 
 @Composable
 public fun LedgerSurface(
@@ -44,14 +88,57 @@ public fun LedgerAmountText(
     accent: Boolean = false,
     textAlign: TextAlign = TextAlign.End,
 ) {
+    val style = when {
+        amount.length <= 9 -> LedgerTextStyles.amountLarge
+        amount.length <= 13 -> LedgerTextStyles.amountMedium
+        else -> LedgerTextStyles.amountCompact
+    }
     Text(
         text = amount,
         modifier = modifier,
         color = if (accent) NothingLedgerTheme.colors.accent else NothingLedgerTheme.colors.contentPrimary,
-        style = MaterialTheme.typography.displayMedium,
+        style = style,
         textAlign = textAlign,
         maxLines = 1,
     )
+}
+
+@Composable
+public fun LedgerControl(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    accent: Boolean = false,
+    enabled: Boolean = true,
+    accessibilityLabel: String = label,
+) {
+    val colors = NothingLedgerTheme.colors
+    val shape = RoundedCornerShape(LedgerRadius.control)
+    Box(
+        modifier = modifier
+            .defaultMinSize(
+                minWidth = LedgerSize.minimumTouchTarget,
+                minHeight = LedgerSize.minimumTouchTarget,
+            )
+            .clip(shape)
+            .background(
+                when {
+                    !enabled -> colors.surface
+                    accent -> colors.accent
+                    else -> colors.surfaceRaised
+                },
+            )
+            .semantics { contentDescription = accessibilityLabel }
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = if (enabled) colors.contentPrimary else colors.contentMuted,
+            style = LedgerTextStyles.latinLabel,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 public enum class LedgerStatus { ACTIVE, MUTED, ALERT }

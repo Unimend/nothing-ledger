@@ -28,6 +28,7 @@ import java.util.UUID
 import com.unimend.nothingledger.domain.CreateTransaction
 import com.unimend.nothingledger.domain.TransactionDraft
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 
 @RunWith(AndroidJUnit4::class)
 class LedgerDatabaseTest {
@@ -107,6 +108,81 @@ class LedgerDatabaseTest {
         )
 
         assertEquals(transaction, transactionRepository.findById(transaction.id))
+    }
+
+    @Test fun activeObservationReflectsSavesOrderingAndSoftDeletion() = runBlocking {
+        val account = Account(
+            AccountId(UUID.randomUUID()), "Wallet", AccountKind.PAYMENT,
+            AccountBalance(0, Currency.getInstance("CNY")), 0, null,
+        )
+        val category = Category(
+            CategoryId(UUID.randomUUID()), null, "Food", CategoryType.EXPENSE, 0, null,
+        )
+        val accountRepository = RoomAccountRepository(database.accountDao())
+        val categoryRepository = RoomCategoryRepository(database.categoryDao())
+        val transactionRepository = RoomTransactionRepository(
+            database.transactionDao(),
+            Clock.fixed(now.plusSeconds(120), ZoneOffset.UTC),
+        )
+        accountRepository.save(account)
+        categoryRepository.save(category)
+        val create = CreateTransaction(
+            transactionRepository,
+            accountRepository,
+            categoryRepository,
+            Clock.fixed(now, ZoneOffset.UTC),
+        )
+
+        val older = create(
+            TransactionDraft(
+                TransactionType.EXPENSE,
+                Money(1200, Currency.getInstance("CNY")),
+                now.minusSeconds(60),
+                sourceAccountId = account.id,
+                categoryId = category.id,
+                note = "Older",
+            ),
+        )
+        val newer = create(
+            TransactionDraft(
+                TransactionType.EXPENSE,
+                Money(2400, Currency.getInstance("CNY")),
+                now,
+                sourceAccountId = account.id,
+                categoryId = category.id,
+                note = "Newer",
+            ),
+        )
+
+        assertEquals(listOf(newer, older), transactionRepository.observeActive().first())
+
+        transactionRepository.softDelete(newer.id)
+
+        assertEquals(listOf(older), transactionRepository.observeActive().first())
+    }
+
+    @Test fun stableDefaultIdsCanBeSeededRepeatedlyWithoutDuplicates() = runBlocking {
+        val accountId = AccountId(UUID.fromString("10000000-0000-0000-0000-000000000001"))
+        val expenseId = CategoryId(UUID.fromString("20000000-0000-0000-0000-000000000001"))
+        val accountRepository = RoomAccountRepository(database.accountDao())
+        val categoryRepository = RoomCategoryRepository(database.categoryDao())
+        val initialAccount = Account(
+            accountId, "Wallet", AccountKind.PAYMENT,
+            AccountBalance(0, Currency.getInstance("CNY")), 0, null,
+        )
+        val renamedAccount = initialAccount.copy(name = "WeChat Wallet")
+        val initialCategory = Category(expenseId, null, "Expense", CategoryType.EXPENSE, 0, null)
+        val renamedCategory = initialCategory.copy(name = "Daily Expense")
+
+        accountRepository.save(initialAccount)
+        categoryRepository.save(initialCategory)
+        accountRepository.save(renamedAccount)
+        categoryRepository.save(renamedCategory)
+
+        assertEquals(listOf(renamedAccount), accountRepository.observeAll().first())
+        assertEquals(listOf(renamedCategory), categoryRepository.observeAll().first())
+        assertEquals(renamedAccount, accountRepository.findById(accountId))
+        assertEquals(renamedCategory, categoryRepository.findById(expenseId))
     }
 }
 

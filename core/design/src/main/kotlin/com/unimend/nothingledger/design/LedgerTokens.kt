@@ -42,6 +42,14 @@ public object LedgerSpacing {
     public val xxl: Dp = 48.dp
 }
 
+public object LedgerSize {
+    /** Exceeds the 44dp accessibility floor while matching Android guidance. */
+    public val minimumTouchTarget: Dp = 48.dp
+    public val compactScreenPadding: Dp = 16.dp
+    public val regularScreenPadding: Dp = 24.dp
+    public val minimumContentBottomSpace: Dp = 24.dp
+}
+
 public object LedgerRadius {
     public val control: Dp = 8.dp
     public val surface: Dp = 16.dp

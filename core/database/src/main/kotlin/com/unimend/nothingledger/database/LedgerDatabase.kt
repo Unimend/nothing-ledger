@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.unimend.nothingledger.domain.AccountRepository
+import com.unimend.nothingledger.domain.CategoryRepository
+import com.unimend.nothingledger.domain.TransactionRepository
 
 @Database(
     entities = [AccountEntity::class, CategoryEntity::class, TransactionEntity::class],
@@ -30,9 +33,25 @@ public object LedgerDatabaseFactory {
 public class LedgerDatabaseHandle internal constructor(
     internal val database: LedgerRoomDatabase,
 ) : AutoCloseable {
-    public fun transactions(): RoomTransactionRepository = RoomTransactionRepository(database.transactionDao())
-    public fun accounts(): RoomAccountRepository = RoomAccountRepository(database.accountDao())
-    public fun categories(): RoomCategoryRepository = RoomCategoryRepository(database.categoryDao())
+    private val transactionRepository: TransactionRepository by lazy {
+        RoomTransactionRepository(database.transactionDao())
+    }
+    private val accountRepository: AccountRepository by lazy {
+        RoomAccountRepository(database.accountDao())
+    }
+    private val categoryRepository: CategoryRepository by lazy {
+        RoomCategoryRepository(database.categoryDao())
+    }
+
+    /** Exposes domain ports only; Room implementations stay behind the data boundary. */
+    public fun transactions(): TransactionRepository = transactionRepository
+
+    /** Exposes domain ports only; Room implementations stay behind the data boundary. */
+    public fun accounts(): AccountRepository = accountRepository
+
+    /** Exposes domain ports only; Room implementations stay behind the data boundary. */
+    public fun categories(): CategoryRepository = categoryRepository
+
     override fun close(): Unit = database.close()
 }
 

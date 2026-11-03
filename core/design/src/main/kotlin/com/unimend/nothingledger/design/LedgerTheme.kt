@@ -14,22 +14,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.unimend.nothingledger.design.R
 
-private val DotoFamily: FontFamily = FontFamily(
+public val LedgerDotoFamily: FontFamily = FontFamily(
     Font(R.font.doto),
 )
 
+private val SystemFamily: FontFamily = FontFamily.SansSerif
+
 private val LedgerTypography: Typography = Typography(
-    displayLarge = TextStyle(fontFamily = DotoFamily, fontWeight = FontWeight.Bold, fontSize = 56.sp, lineHeight = 56.sp),
-    displayMedium = TextStyle(fontFamily = DotoFamily, fontWeight = FontWeight.Bold, fontSize = 44.sp, lineHeight = 46.sp),
-    headlineLarge = TextStyle(fontFamily = DotoFamily, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 36.sp),
-    headlineMedium = TextStyle(fontFamily = DotoFamily, fontWeight = FontWeight.Bold, fontSize = 26.sp, lineHeight = 30.sp),
-    titleLarge = TextStyle(fontFamily = DotoFamily, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 26.sp),
-    titleMedium = TextStyle(fontFamily = DotoFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 22.sp),
-    bodyLarge = TextStyle(fontFamily = DotoFamily, fontWeight = FontWeight.Normal, fontSize = 17.sp, lineHeight = 23.sp),
-    bodyMedium = TextStyle(fontFamily = DotoFamily, fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 21.sp),
-    labelLarge = TextStyle(fontFamily = DotoFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, lineHeight = 18.sp),
-    labelMedium = TextStyle(fontFamily = DotoFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, lineHeight = 16.sp),
+    displayLarge = TextStyle(fontFamily = LedgerDotoFamily, fontWeight = FontWeight.Bold, fontSize = 56.sp, lineHeight = 56.sp),
+    displayMedium = TextStyle(fontFamily = LedgerDotoFamily, fontWeight = FontWeight.Bold, fontSize = 44.sp, lineHeight = 46.sp),
+    headlineLarge = TextStyle(fontFamily = SystemFamily, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 38.sp),
+    headlineMedium = TextStyle(fontFamily = SystemFamily, fontWeight = FontWeight.Bold, fontSize = 26.sp, lineHeight = 32.sp),
+    titleLarge = TextStyle(fontFamily = SystemFamily, fontWeight = FontWeight.Bold, fontSize = 22.sp, lineHeight = 28.sp),
+    titleMedium = TextStyle(fontFamily = SystemFamily, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 24.sp),
+    bodyLarge = TextStyle(fontFamily = SystemFamily, fontWeight = FontWeight.Normal, fontSize = 17.sp, lineHeight = 25.sp),
+    bodyMedium = TextStyle(fontFamily = SystemFamily, fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 23.sp),
+    labelLarge = TextStyle(fontFamily = LedgerDotoFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, lineHeight = 18.sp),
+    labelMedium = TextStyle(fontFamily = LedgerDotoFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, lineHeight = 16.sp),
 )
+
+public object LedgerTextStyles {
+    public val amountLarge: TextStyle = TextStyle(
+        fontFamily = LedgerDotoFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 56.sp,
+        lineHeight = 58.sp,
+    )
+    public val amountMedium: TextStyle = amountLarge.copy(fontSize = 44.sp, lineHeight = 46.sp)
+    public val amountCompact: TextStyle = amountLarge.copy(fontSize = 32.sp, lineHeight = 36.sp)
+    public val latinLabel: TextStyle = TextStyle(
+        fontFamily = LedgerDotoFamily,
+        fontWeight = FontWeight.Bold,
+        fontSize = 14.sp,
+        lineHeight = 18.sp,
+    )
+}
 
 private val LocalLedgerColors = staticCompositionLocalOf { LedgerColorTokens.Dark }
 

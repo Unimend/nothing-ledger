@@ -137,3 +137,5 @@ Compose ← UiState ← StateFlow ← Result / Domain Event
 
 这个结构保证视觉升级不会改变交易规则，导入格式变化不会牵动首页，统计扩展也不会污染记账路径。
 
+具体的代码边界检查结果与后续约束见 [BOUNDARY_AUDIT.md](BOUNDARY_AUDIT.md)。
+

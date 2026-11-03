@@ -21,5 +21,6 @@ include(":core:design")
 include(":core:database")
 include(":domain:ledger")
 include(":feature:entry")
+include(":feature:timeline")
 include(":app")
 
