@@ -18,6 +18,7 @@ import com.unimend.nothingledger.accounts.AccountsState
 import com.unimend.nothingledger.design.LedgerAmountText
 import com.unimend.nothingledger.design.LedgerControl
 import com.unimend.nothingledger.design.LedgerSurface
+import com.unimend.nothingledger.design.NothingLedgerTheme
 import java.math.BigDecimal
 import java.util.Currency
 
@@ -87,7 +88,7 @@ private fun AccountPortfolioSummary(accounts: AccountsState) {
                         is AccountsState.Failure -> "不可用"
                         is AccountsState.Content -> "${accounts.active.size} 个账户"
                     },
-                    color = if (accounts is AccountsState.Failure) Color(0xFFFF2D2D) else Color(0xFF777777),
+                    color = if (accounts is AccountsState.Failure) NothingLedgerTheme.colors.accent else NothingLedgerTheme.colors.contentMuted,
                     style = MaterialTheme.typography.labelMedium,
                 )
             }
@@ -102,7 +103,7 @@ private fun AccountPortfolioSummary(accounts: AccountsState) {
                 }
                 else -> totals.forEach { (currency, value) ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(currency.currencyCode, color = Color(0xFF777777), style = MaterialTheme.typography.labelMedium)
+                        Text(currency.currencyCode, color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelMedium)
                         Text(formatCurrency(value, currency), color = Color.White, style = MaterialTheme.typography.titleLarge)
                     }
                 }
@@ -111,7 +112,7 @@ private fun AccountPortfolioSummary(accounts: AccountsState) {
                 Spacer(Modifier.height(12.dp))
                 Text(
                     "另有 ${content.archived.size} 个已归档账户，不计入上方合计",
-                    color = Color(0xFF666666),
+                    color = NothingLedgerTheme.colors.contentMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -123,7 +124,7 @@ private fun AccountPortfolioSummary(accounts: AccountsState) {
 private fun SummaryHint(message: String, alert: Boolean = false) {
     Text(
         message,
-        color = if (alert) Color(0xFFFF2D2D) else Color(0xFF777777),
+        color = if (alert) NothingLedgerTheme.colors.accent else NothingLedgerTheme.colors.contentMuted,
         style = MaterialTheme.typography.bodyMedium,
     )
 }

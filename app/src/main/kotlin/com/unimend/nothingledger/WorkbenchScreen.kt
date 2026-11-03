@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.unimend.nothingledger.design.DitherField
 import com.unimend.nothingledger.design.LedgerControl
+import com.unimend.nothingledger.design.LedgerGestureTokens
+import com.unimend.nothingledger.design.LedgerMotionTokens
 import com.unimend.nothingledger.design.LedgerSpacing
 import com.unimend.nothingledger.design.LedgerSurface
 import com.unimend.nothingledger.design.LedgerScreen
@@ -88,9 +90,20 @@ private fun InteractionTestsSection(onFocus: () -> Unit) {
     WorkbenchSectionHeader("05", "交互测试", onFocus)
     LedgerSurface(Modifier.fillMaxWidth(), elevated = true) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("统一动效与手势入口", color = Color.White, style = MaterialTheme.typography.titleMedium)
+            Text(
+                "反馈 ${LedgerMotionTokens.FeedbackMillis}ms · 导航 ${LedgerMotionTokens.NavigationMillis}ms",
+                color = NothingLedgerTheme.colors.contentMuted,
+                style = MaterialTheme.typography.labelMedium,
+            )
+            Text(
+                "局部横滑 ${LedgerGestureTokens.LocalSwipeActionDistance.value.toInt()}dp · 方向比 ${LedgerGestureTokens.HorizontalDominanceRatio}",
+                color = NothingLedgerTheme.colors.contentMuted,
+                style = MaterialTheme.typography.labelMedium,
+            )
             Text("点击次数 / $count", color = Color.White, style = MaterialTheme.typography.titleMedium)
             LedgerControl("点击反馈", { count += 1 }, Modifier.fillMaxWidth(), accent = true)
-            DitherField(Modifier.fillMaxWidth().height(64.dp), color = Color(0xFF444444))
+            DitherField(Modifier.fillMaxWidth().height(64.dp), color = NothingLedgerTheme.colors.border)
         }
     }
 }

@@ -24,8 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +31,7 @@ import com.unimend.nothingledger.design.GestureAxisLock
 import com.unimend.nothingledger.design.HorizontalSwipeAction
 import com.unimend.nothingledger.design.HorizontalSwipeConfig
 import com.unimend.nothingledger.design.HorizontalSwipeState
+import com.unimend.nothingledger.design.rememberLedgerLocalSwipeConfig
 import com.unimend.nothingledger.design.LedgerControl
 import com.unimend.nothingledger.design.LedgerSpacing
 import com.unimend.nothingledger.design.LedgerSurface
@@ -128,9 +127,7 @@ private fun EntryDatePicker(
     onNextMonth: () -> Unit,
     onSelectDate: (LocalDate) -> Unit,
 ) {
-    val touchSlop = LocalViewConfiguration.current.touchSlop
-    val swipeDistance = with(LocalDensity.current) { 64.dp.toPx() }
-    val swipeConfig = HorizontalSwipeConfig(touchSlop, swipeDistance)
+    val swipeConfig = rememberLedgerLocalSwipeConfig()
     LedgerSurface(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(10.dp)) {
             Row(

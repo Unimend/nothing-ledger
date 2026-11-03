@@ -1,5 +1,25 @@
 package com.unimend.nothingledger
 
+/** Developer-shell navigation. It never enters the product page stack. */
+internal enum class RootSurface { WORKBENCH, PRODUCT_PREVIEW }
+
+internal data class RootNavigationState(
+    val surface: RootSurface = RootSurface.WORKBENCH,
+)
+
+internal sealed interface RootNavigationAction {
+    data object OpenProductPreview : RootNavigationAction
+    data object CloseProductPreview : RootNavigationAction
+}
+
+internal object RootNavigationReducer {
+    fun reduce(state: RootNavigationState, action: RootNavigationAction): RootNavigationState = when (action) {
+        RootNavigationAction.OpenProductPreview -> state.copy(surface = RootSurface.PRODUCT_PREVIEW)
+        RootNavigationAction.CloseProductPreview -> state.copy(surface = RootSurface.WORKBENCH)
+    }
+}
+
+/** Local navigation inside the database-free component laboratory. */
 internal enum class WorkbenchSection {
     DESIGN_TOKENS,
     BASE_COMPONENTS,

@@ -20,8 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,6 +30,7 @@ import com.unimend.nothingledger.design.GestureAxisLock
 import com.unimend.nothingledger.design.HorizontalSwipeAction
 import com.unimend.nothingledger.design.HorizontalSwipeConfig
 import com.unimend.nothingledger.design.HorizontalSwipeState
+import com.unimend.nothingledger.design.rememberLedgerLocalSwipeConfig
 import com.unimend.nothingledger.model.Transaction
 import com.unimend.nothingledger.timeline.CalendarDayCell
 import com.unimend.nothingledger.timeline.CalendarDayCellState
@@ -89,12 +88,7 @@ private fun CalendarGrid(
     onNextMonth: () -> Unit,
     onTransactionClick: (Transaction) -> Unit,
 ) {
-    val touchSlop = LocalViewConfiguration.current.touchSlop
-    val swipeDistance = with(LocalDensity.current) { 64.dp.toPx() }
-    val swipeConfig = HorizontalSwipeConfig(
-        directionLockDistance = touchSlop,
-        actionDistance = swipeDistance,
-    )
+    val swipeConfig = rememberLedgerLocalSwipeConfig()
     Column(
         Modifier
             .fillMaxWidth()

@@ -59,24 +59,25 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            var root by remember { mutableStateOf(RootSurface.WORKBENCH) }
+            var rootNavigation by remember { mutableStateOf(RootNavigationState()) }
+            val navigateRoot: (RootNavigationAction) -> Unit = { action ->
+                rootNavigation = RootNavigationReducer.reduce(rootNavigation, action)
+            }
             NothingLedgerTheme {
-                when (root) {
+                when (rootNavigation.surface) {
                     RootSurface.WORKBENCH -> WorkbenchScreen(
-                        onOpenProductPreview = { root = RootSurface.PRODUCT_PREVIEW },
+                        onOpenProductPreview = { navigateRoot(RootNavigationAction.OpenProductPreview) },
                         onExit = ::finish,
                     )
                     RootSurface.PRODUCT_PREVIEW -> ProductPreview(
                         database = (application as LedgerApplication).database,
-                        onExitPreview = { root = RootSurface.WORKBENCH },
+                        onExitPreview = { navigateRoot(RootNavigationAction.CloseProductPreview) },
                     )
                 }
             }
         }
     }
 }
-
-private enum class RootSurface { WORKBENCH, PRODUCT_PREVIEW }
 
 @Composable
 private fun ProductPreview(database: LedgerDatabaseHandle, onExitPreview: () -> Unit) {
@@ -269,7 +270,7 @@ private fun AppHeader(
         }
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(status, color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
+            Text(status, color = NothingLedgerTheme.colors.accent, style = MaterialTheme.typography.labelMedium)
             if (destination == MainDestination.TIMELINE) LedgerControl("搜索", onSearch)
         }
     }
@@ -302,11 +303,11 @@ private fun EntryContent(
         onSave = { dispatch(EntryAction.RequestSave) },
     )
     state.validationErrors.firstOrNull()?.let {
-        Text("CHECK / ${it.name}", color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
+        Text("CHECK / ${it.name}", color = NothingLedgerTheme.colors.accent, style = MaterialTheme.typography.labelMedium)
     }
     Spacer(Modifier.height(32.dp))
     Box(Modifier.fillMaxWidth().height(72.dp)) {
-        DitherField(Modifier.align(Alignment.CenterEnd).size(160.dp, 72.dp), color = Color(0xFF333333))
+        DitherField(Modifier.align(Alignment.CenterEnd).size(160.dp, 72.dp), color = NothingLedgerTheme.colors.border)
     }
 }
 

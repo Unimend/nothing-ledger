@@ -32,7 +32,7 @@ internal fun PageSkeletonScreen(destination: PageDestination, onBack: () -> Unit
         Spacer(Modifier.height(10.dp))
         Text(copy.description, color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.bodyLarge)
         Spacer(Modifier.height(28.dp))
-        DitherField(Modifier.fillMaxWidth().height(96.dp), color = Color(0xFF333333))
+        DitherField(Modifier.fillMaxWidth().height(96.dp), color = NothingLedgerTheme.colors.border)
     }
 }
 

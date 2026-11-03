@@ -20,14 +20,13 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.unimend.nothingledger.design.LedgerControl
 import com.unimend.nothingledger.design.GestureAxisLock
 import com.unimend.nothingledger.design.HorizontalSwipeAction
-import com.unimend.nothingledger.design.HorizontalSwipeConfig
 import com.unimend.nothingledger.design.HorizontalSwipeState
+import com.unimend.nothingledger.design.rememberLedgerLocalSwipeConfig
 import com.unimend.nothingledger.design.LedgerSurface
 import com.unimend.nothingledger.design.NothingLedgerTheme
 import com.unimend.nothingledger.model.Transaction
@@ -80,11 +79,7 @@ private fun MonthOverviewRegion(
     onCurrentMonth: () -> Unit,
     onNextMonth: () -> Unit,
 ) {
-    val density = LocalDensity.current
-    val swipeConfig = HorizontalSwipeConfig(
-        directionLockDistance = with(density) { 12.dp.toPx() },
-        actionDistance = with(density) { 56.dp.toPx() },
-    )
+    val swipeConfig = rememberLedgerLocalSwipeConfig()
     val previous by rememberUpdatedState(onPreviousMonth)
     val next by rememberUpdatedState(onNextMonth)
     Column(

@@ -56,9 +56,3 @@ public object LedgerRadius {
     public val prominent: Dp = 24.dp
 }
 
-public object LedgerMotion {
-    public const val InstantMillis: Int = 90
-    public const val FeedbackMillis: Int = 180
-    public const val TransitionMillis: Int = 280
-}
-

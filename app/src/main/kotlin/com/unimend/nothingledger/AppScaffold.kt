@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.unimend.nothingledger.design.LedgerControl
+import com.unimend.nothingledger.design.LedgerMotionSpecs
 import com.unimend.nothingledger.design.LedgerScreen
 import com.unimend.nothingledger.design.NothingLedgerTheme
 import com.unimend.nothingledger.shell.MainDestination
@@ -41,7 +42,10 @@ internal fun AppScaffold(
     LaunchedEffect(selected) {
         val targetPage = mainDestinations.indexOf(selected).coerceAtLeast(0)
         if (pagerState.settledPage != targetPage) {
-            pagerState.animateScrollToPage(targetPage)
+            pagerState.animateScrollToPage(
+                page = targetPage,
+                animationSpec = LedgerMotionSpecs.navigation(),
+            )
         }
     }
     LaunchedEffect(pagerState) {

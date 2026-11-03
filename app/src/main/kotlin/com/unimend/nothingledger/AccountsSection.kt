@@ -54,7 +54,7 @@ internal fun AccountsSection(
                     Spacer(Modifier.height(6.dp))
                 }
                 if (accounts.archived.isNotEmpty()) {
-                    Text("ARCHIVED / ${accounts.archived.size}", color = Color(0xFF666666), style = MaterialTheme.typography.labelMedium)
+                    Text("ARCHIVED / ${accounts.archived.size}", color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -76,7 +76,7 @@ private fun AccountRow(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
                     Text(item.account.name, color = Color.White, style = MaterialTheme.typography.bodyLarge)
-                    Text(item.account.kind.name, color = Color(0xFF777777), style = MaterialTheme.typography.labelMedium)
+                    Text(item.account.kind.name, color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.labelMedium)
                 }
                 Text(formatBalance(item), color = Color.White, style = MaterialTheme.typography.labelLarge)
             }
@@ -120,12 +120,12 @@ private fun AccountEditorCard(
                 singleLine = true,
                 decorationBox = { field ->
                     Box {
-                        if (name.isEmpty()) Text("账户名称", color = Color(0xFF666666), style = MaterialTheme.typography.bodyLarge)
+                        if (name.isEmpty()) Text("账户名称", color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.bodyLarge)
                         field()
                     }
                 },
             )
-            state.error?.let { Text(it, color = Color(0xFFFF2D2D), style = MaterialTheme.typography.bodyMedium) }
+            state.error?.let { Text(it, color = NothingLedgerTheme.colors.accent, style = MaterialTheme.typography.bodyMedium) }
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 LedgerControl("CANCEL", onCancel, Modifier.weight(1f), enabled = !state.busy)
@@ -139,7 +139,7 @@ private fun AccountEditorCard(
 private fun Hint(text: String, alert: Boolean = false) {
     Text(
         text, Modifier.fillMaxWidth().padding(18.dp),
-        color = if (alert) Color(0xFFFF2D2D) else Color(0xFF777777),
+        color = if (alert) NothingLedgerTheme.colors.accent else NothingLedgerTheme.colors.contentMuted,
         style = MaterialTheme.typography.labelMedium,
     )
 }
