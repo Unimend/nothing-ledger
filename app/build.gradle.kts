@@ -11,8 +11,8 @@ android {
         applicationId = "com.unimend.nothingledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 13
-        versionName = "0.1.4-entry-date-swipe"
+        versionCode = 14
+        versionName = "0.2.0-navigation-foundation"
     }
 
     compileOptions {

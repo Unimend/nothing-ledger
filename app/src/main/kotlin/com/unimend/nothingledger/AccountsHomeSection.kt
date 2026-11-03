@@ -33,6 +33,7 @@ internal fun AccountsHomeSection(
     onCancel: () -> Unit,
     onArchive: (AccountListItem) -> Unit,
     onOpenCategories: () -> Unit,
+    onOpenDataManagement: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
@@ -56,6 +57,13 @@ internal fun AccountsHomeSection(
             onClick = onOpenCategories,
             modifier = Modifier.fillMaxWidth(),
             accessibilityLabel = "打开分类管理",
+        )
+        Spacer(Modifier.height(8.dp))
+        LedgerControl(
+            label = "数据管理",
+            onClick = onOpenDataManagement,
+            modifier = Modifier.fillMaxWidth(),
+            accessibilityLabel = "打开数据管理",
         )
     }
 }

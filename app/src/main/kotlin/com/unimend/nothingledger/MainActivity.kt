@@ -41,16 +41,18 @@ import com.unimend.nothingledger.entry.EntryAction
 import com.unimend.nothingledger.entry.EntryMode
 import com.unimend.nothingledger.entry.EntryOptionsState
 import com.unimend.nothingledger.model.TransactionId
-import com.unimend.nothingledger.shell.ShellAction
+import com.unimend.nothingledger.shell.LedgerNavigationAction
+import com.unimend.nothingledger.shell.LedgerNavigationEffect
+import com.unimend.nothingledger.shell.LedgerNavigationReducer
+import com.unimend.nothingledger.shell.LedgerNavigationState
 import com.unimend.nothingledger.shell.MainDestination
-import com.unimend.nothingledger.shell.OverlayDestination
-import com.unimend.nothingledger.shell.ShellEffect
-import com.unimend.nothingledger.shell.ShellReducer
-import com.unimend.nothingledger.shell.ShellState
+import com.unimend.nothingledger.shell.NavigationKey
+import com.unimend.nothingledger.shell.PageDestination
 import com.unimend.nothingledger.timeline.TimelineHomePage
 import com.unimend.nothingledger.timeline.TransactionDetailState
 import com.unimend.nothingledger.timeline.TransactionDetailActionState
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,12 +74,19 @@ class MainActivity : ComponentActivity() {
             val categoriesViewModel: CategoriesViewModel = viewModel(factory = CategoriesViewModel.factory(database))
             val categoriesState by categoriesViewModel.state.collectAsState()
             val categoryError by categoriesViewModel.commandError.collectAsState()
-            var selectedTransactionId by remember { mutableStateOf<TransactionId?>(null) }
+            var navigationState by remember { mutableStateOf(LedgerNavigationState()) }
+            fun navigate(action: LedgerNavigationAction) {
+                val transition = LedgerNavigationReducer.reduce(navigationState, action)
+                navigationState = transition.state
+                if (transition.effect == LedgerNavigationEffect.ExitRequested) finish()
+            }
             val detailActionsViewModel: TransactionDetailActionsViewModel = viewModel(
                 factory = TransactionDetailActionsViewModel.factory(database),
             )
             val transactionDetailActions by detailActionsViewModel.state.collectAsState()
-            val transactionDetail = selectedTransactionId?.let { id ->
+            val detailDestination = navigationState.visiblePage as? PageDestination.TransactionDetail
+            val transactionDetail = detailDestination?.let { destination ->
+                val id = TransactionId(UUID.fromString(destination.transactionId.value))
                 val detailViewModel: TransactionDetailViewModel = viewModel(
                     key = "transaction-detail-${id.value}",
                     factory = TransactionDetailViewModel.factory(database, id),
@@ -118,17 +127,13 @@ class MainActivity : ComponentActivity() {
                         nextMonth = calendarViewModel::nextMonth,
                         selectDate = calendarViewModel::selectDate,
                     ),
+                    navigationState = navigationState,
+                    navigate = ::navigate,
                     transactionDetail = transactionDetail,
                     transactionDetailActions = transactionDetailActions,
-                    onSelectTransaction = { selectedTransactionId = it },
-                    onCloseTransaction = {
-                        detailActionsViewModel.close()
-                        selectedTransactionId = null
-                    },
                     onDeleteTransaction = detailActionsViewModel::delete,
                     onUndoDelete = detailActionsViewModel::undoDelete,
                     manageActions = manageActions,
-                    onExit = ::finish,
                 )
             }
         }
@@ -145,68 +150,64 @@ private fun LedgerApp(
     manageState: ManageUiState,
     entryAction: (EntryAction) -> Unit,
     calendarActions: CalendarActions,
+    navigationState: LedgerNavigationState,
+    navigate: (LedgerNavigationAction) -> Unit,
     transactionDetail: TransactionDetailState?,
     transactionDetailActions: TransactionDetailActionState,
-    onSelectTransaction: (TransactionId) -> Unit,
-    onCloseTransaction: () -> Unit,
     onDeleteTransaction: () -> Unit,
     onUndoDelete: () -> Unit,
     manageActions: ManageActions,
-    onExit: () -> Unit,
 ) {
-    var shellState by remember { mutableStateOf(ShellState()) }
-    fun navigate(action: ShellAction) {
-        val transition = ShellReducer.reduce(shellState, action)
-        shellState = transition.state
-        if (transition.effect == ShellEffect.ExitRequested) onExit()
-    }
-    BackHandler {
-        if (transactionDetail != null) onCloseTransaction() else navigate(ShellAction.NavigateBack)
-    }
-
-    transactionDetail?.let { detail ->
-        TransactionDetailScreen(
-            state = detail,
-            actionState = transactionDetailActions,
-            onBack = onCloseTransaction,
-            onDelete = onDeleteTransaction,
-            onUndoDelete = onUndoDelete,
-        )
-        return
-    }
-
-    when (shellState.overlay) {
-        OverlayDestination.QUICK_ENTRY -> {
+    BackHandler { navigate(LedgerNavigationAction.NavigateBack) }
+    val back = { navigate(LedgerNavigationAction.NavigateBack) }
+    when (val page = navigationState.visiblePage) {
+        PageDestination.QuickEntry -> {
             LedgerScreen {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("新增记账", color = Color.White, style = MaterialTheme.typography.titleLarge)
-                    LedgerControl("返回", { navigate(ShellAction.CloseOverlay) })
+                    LedgerControl("返回", back)
                 }
                 Spacer(Modifier.height(24.dp))
                 EntryContent(uiState, entryOptions, entryAction)
             }
         }
-        OverlayDestination.CATEGORIES -> {
+        PageDestination.CategoryManagement -> {
             LedgerScreen {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("分类管理", color = Color.White, style = MaterialTheme.typography.titleLarge)
-                    LedgerControl("返回", { navigate(ShellAction.CloseOverlay) })
+                    LedgerControl("返回", back)
                 }
                 Spacer(Modifier.height(24.dp))
                 CategoriesSection(manageState.categories, manageState.categoryError, manageActions.categoryAction)
             }
         }
+        is PageDestination.TransactionDetail -> if (transactionDetail != null) {
+            TransactionDetailScreen(
+                state = transactionDetail,
+                actionState = transactionDetailActions,
+                onBack = back,
+                onDelete = onDeleteTransaction,
+                onUndoDelete = onUndoDelete,
+            )
+        } else {
+            PageSkeletonScreen(page, back)
+        }
         null -> AppScaffold(
-            selected = shellState.selectedMain,
-            onSelect = { navigate(ShellAction.SelectMain(it)) },
-            onAdd = { navigate(ShellAction.OpenOverlay(OverlayDestination.QUICK_ENTRY)) },
+            selected = navigationState.selectedMain,
+            onSelect = { navigate(LedgerNavigationAction.SelectMain(it)) },
+            onAdd = { navigate(LedgerNavigationAction.PushPage(PageDestination.QuickEntry)) },
         ) { destination ->
-            AppHeader(uiState, destination)
+            AppHeader(
+                uiState = uiState,
+                destination = destination,
+                onSearch = { navigate(LedgerNavigationAction.PushPage(PageDestination.Search)) },
+                onSettings = { navigate(LedgerNavigationAction.PushPage(PageDestination.Settings)) },
+            )
             Spacer(Modifier.height(24.dp))
             when (destination) {
                 MainDestination.TIMELINE -> TimelineHomePage(
                     state = timelineState,
-                    onTransactionClick = { onSelectTransaction(it.id) },
+                    onTransactionClick = { navigate(LedgerNavigationAction.PushPage(it.id.detailPage())) },
                     onPreviousMonth = timelineActions.previousMonth,
                     onCurrentMonth = timelineActions.currentMonth,
                     onNextMonth = timelineActions.nextMonth,
@@ -216,29 +217,44 @@ private fun LedgerApp(
                     onPreviousMonth = calendarActions.previousMonth,
                     onNextMonth = calendarActions.nextMonth,
                     onSelectDate = calendarActions.selectDate,
+                    onTransactionClick = { navigate(LedgerNavigationAction.PushPage(it.id.detailPage())) },
                 )
                 MainDestination.STATISTICS -> StatisticsSection(timelineState, manageState.categories)
                 MainDestination.ACCOUNTS -> AccountsContent(
                     manageState,
                     manageActions,
-                    onCategories = { navigate(ShellAction.OpenOverlay(OverlayDestination.CATEGORIES)) },
+                    onCategories = { navigate(LedgerNavigationAction.PushPage(PageDestination.CategoryManagement)) },
+                    onDataManagement = { navigate(LedgerNavigationAction.PushPage(PageDestination.DataManagement)) },
                 )
             }
         }
+        else -> PageSkeletonScreen(page, back)
     }
 }
 
 @Composable
-private fun AppHeader(uiState: EntryUiState, destination: MainDestination) {
+private fun AppHeader(
+    uiState: EntryUiState,
+    destination: MainDestination,
+    onSearch: () -> Unit,
+    onSettings: () -> Unit,
+) {
     val status = uiState.errorMessage?.let { "出错 / ${it.take(18)}" } ?: when (destination) {
         MainDestination.TIMELINE -> "全部流水"
         MainDestination.CALENDAR -> "按日期查看"
         MainDestination.STATISTICS -> "收支概览"
         MainDestination.ACCOUNTS -> "资产与账户"
     }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text("NOTHING\nLEDGER", color = Color.White, style = MaterialTheme.typography.titleLarge)
-        Text(status, color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("NOTHING\nLEDGER", color = Color.White, style = MaterialTheme.typography.titleLarge)
+            LedgerControl("设置", onSettings)
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(status, color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
+            if (destination == MainDestination.TIMELINE) LedgerControl("搜索", onSearch)
+        }
     }
 }
 
@@ -333,6 +349,7 @@ private fun AccountsContent(
     state: ManageUiState,
     actions: ManageActions,
     onCategories: () -> Unit,
+    onDataManagement: () -> Unit,
 ) {
     AccountsHomeSection(
         accounts = state.accounts,
@@ -344,8 +361,12 @@ private fun AccountsContent(
         onCancel = actions.cancelAccount,
         onArchive = actions.archiveAccount,
         onOpenCategories = onCategories,
+        onOpenDataManagement = onDataManagement,
     )
 }
+
+private fun TransactionId.detailPage(): PageDestination.TransactionDetail =
+    PageDestination.TransactionDetail(NavigationKey(value.toString()))
 
 @Composable
 private fun ModeRow(selected: EntryMode, onSelect: (EntryMode) -> Unit) {

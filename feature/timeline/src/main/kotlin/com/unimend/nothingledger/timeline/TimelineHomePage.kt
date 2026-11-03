@@ -1,6 +1,5 @@
 package com.unimend.nothingledger.timeline
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +21,6 @@ import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.unimend.nothingledger.design.LedgerControl
@@ -32,7 +30,6 @@ import com.unimend.nothingledger.design.HorizontalSwipeConfig
 import com.unimend.nothingledger.design.HorizontalSwipeState
 import com.unimend.nothingledger.design.LedgerSurface
 import com.unimend.nothingledger.design.NothingLedgerTheme
-import com.unimend.nothingledger.design.ledgerClickable
 import com.unimend.nothingledger.model.Transaction
 import com.unimend.nothingledger.model.TransactionType
 import java.time.ZoneId
@@ -65,9 +62,11 @@ public fun TimelineHomePage(
                         color = NothingLedgerTheme.colors.contentMuted,
                         style = MaterialTheme.typography.labelMedium,
                     )
-                    day.transactions.forEach { transaction ->
-                        TransactionRow(transaction, zoneId) { onTransactionClick(transaction) }
-                    }
+                    TransactionList(
+                        transactions = day.transactions,
+                        onTransactionClick = onTransactionClick,
+                        zoneId = zoneId,
+                    )
                 }
             }
         }
@@ -188,41 +187,6 @@ private fun SummaryCell(label: String, value: String, modifier: Modifier, alert:
 }
 
 @Composable
-private fun TransactionRow(transaction: Transaction, zoneId: ZoneId, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(bottom = 2.dp)
-            .background(NothingLedgerTheme.colors.surface)
-            .ledgerClickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(transaction.timelineTitle(), color = Color.White, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                transaction.note?.takeIf(String::isNotBlank)
-                    ?: transaction.occurredAt.atZone(zoneId).format(timeFormatter),
-                color = NothingLedgerTheme.colors.contentMuted,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-            )
-        }
-        Text(
-            transaction.timelineAmount(),
-            color = if (transaction.type == TransactionType.EXPENSE) {
-                NothingLedgerTheme.colors.accent
-            } else {
-                NothingLedgerTheme.colors.contentPrimary
-            },
-            style = MaterialTheme.typography.labelLarge,
-            textAlign = TextAlign.End,
-            maxLines = 1,
-        )
-    }
-}
-
-@Composable
 private fun TimelineNotice(message: String, alert: Boolean = false) {
     Text(
         message,
@@ -287,4 +251,3 @@ internal fun formatMinor(value: Long, currencyCode: String): String {
 
 private fun powerOfTen(scale: Int): Long = generateSequence(1L) { it * 10L }.drop(scale).first()
 private val dayFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MM / dd   EEE")
-private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")

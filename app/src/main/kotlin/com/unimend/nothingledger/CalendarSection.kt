@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.unimend.nothingledger.design.LedgerControl
 import com.unimend.nothingledger.design.LedgerSpacing
-import com.unimend.nothingledger.design.LedgerSurface
 import com.unimend.nothingledger.design.NothingLedgerTheme
 import com.unimend.nothingledger.design.GestureAxisLock
 import com.unimend.nothingledger.design.HorizontalSwipeAction
@@ -36,10 +35,10 @@ import com.unimend.nothingledger.design.HorizontalSwipeConfig
 import com.unimend.nothingledger.design.HorizontalSwipeState
 import com.unimend.nothingledger.design.ledgerClickable
 import com.unimend.nothingledger.model.Transaction
-import com.unimend.nothingledger.model.TransactionType
 import com.unimend.nothingledger.timeline.CalendarDay
 import com.unimend.nothingledger.timeline.CalendarMonth
 import com.unimend.nothingledger.timeline.CalendarState
+import com.unimend.nothingledger.timeline.TransactionList
 import java.time.LocalDate
 
 @Composable
@@ -48,6 +47,7 @@ internal fun CalendarSection(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onSelectDate: (LocalDate) -> Unit,
+    onTransactionClick: (Transaction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
@@ -75,6 +75,7 @@ internal fun CalendarSection(
                 onSelectDate = onSelectDate,
                 onPreviousMonth = onPreviousMonth,
                 onNextMonth = onNextMonth,
+                onTransactionClick = onTransactionClick,
             )
         }
     }
@@ -86,6 +87,7 @@ private fun CalendarGrid(
     onSelectDate: (LocalDate) -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    onTransactionClick: (Transaction) -> Unit,
 ) {
     val touchSlop = LocalViewConfiguration.current.touchSlop
     val swipeDistance = with(LocalDensity.current) { 64.dp.toPx() }
@@ -134,10 +136,12 @@ private fun CalendarGrid(
         style = MaterialTheme.typography.labelMedium,
     )
     Spacer(Modifier.height(LedgerSpacing.xs))
-    if (selected != null && month.selectedTransactions.isEmpty()) {
-        CalendarMessage("NO ENTRIES / THIS DAY")
-    } else {
-        month.selectedTransactions.forEach { transaction -> CalendarTransactionRow(transaction) }
+    if (selected != null) {
+        TransactionList(
+            transactions = month.selectedTransactions,
+            onTransactionClick = onTransactionClick,
+            emptyMessage = "NO ENTRIES / THIS DAY",
+        )
     }
 }
 
@@ -201,28 +205,6 @@ private fun CalendarCell(
 }
 
 @Composable
-private fun CalendarTransactionRow(transaction: Transaction) {
-    LedgerSurface(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(transaction.kindLabel(), color = Color.White, style = MaterialTheme.typography.bodyLarge)
-                transaction.note?.takeIf(String::isNotBlank)?.let { note ->
-                    Text(note, color = NothingLedgerTheme.colors.contentMuted, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            Text(
-                transaction.amountLabel(),
-                color = if (transaction.type == TransactionType.EXPENSE) NothingLedgerTheme.colors.accent else Color.White,
-                style = MaterialTheme.typography.labelLarge,
-            )
-        }
-    }
-}
-
-@Composable
 private fun CalendarMessage(message: String, alert: Boolean = false) {
     Box(Modifier.fillMaxWidth().padding(vertical = 18.dp), contentAlignment = Alignment.Center) {
         Text(
@@ -238,21 +220,6 @@ private fun CalendarState.monthLabel(): String = when (this) {
     is CalendarState.Ready -> month.query.month
     is CalendarState.Failure -> query.month
 }.toString().replace("-", " / ")
-
-private fun Transaction.kindLabel(): String = when (type) {
-    TransactionType.EXPENSE -> "EXPENSE"
-    TransactionType.INCOME -> "INCOME"
-    TransactionType.TRANSFER -> "TRANSFER"
-}
-
-private fun Transaction.amountLabel(): String {
-    val prefix = when (type) {
-        TransactionType.EXPENSE -> "−"
-        TransactionType.INCOME -> "+"
-        TransactionType.TRANSFER -> "→"
-    }
-    return "$prefix${money.currency.symbol}${money.minorUnits / 100}.${(money.minorUnits % 100).toString().padStart(2, '0')}"
-}
 
 private fun compactMinor(minor: Long): String = when {
     minor >= 100_000_000 -> "${minor / 100_000_000}m"
