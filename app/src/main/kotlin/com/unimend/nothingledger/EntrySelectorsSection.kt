@@ -31,14 +31,14 @@ internal fun EntrySelectorsSection(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
-        Text("DETAILS", color = Color.White, style = MaterialTheme.typography.titleMedium)
+        Text("选择账户与分类", color = Color.White, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(LedgerSpacing.xs))
         when (optionsState) {
-            EntryOptionsState.Loading -> SelectorMessage("READING / OPTIONS")
-            is EntryOptionsState.Failure -> SelectorMessage("ERROR / ${optionsState.message.take(36)}", alert = true)
+            EntryOptionsState.Loading -> SelectorMessage("正在读取账户和分类")
+            is EntryOptionsState.Failure -> SelectorMessage("读取失败 / ${optionsState.message.take(36)}", alert = true)
             is EntryOptionsState.Ready -> when (entry.mode) {
                 EntryMode.EXPENSE -> {
-                    AccountSelector("FROM", optionsState.options.sourceAccounts, entry.sourceAccountId) { account ->
+                    AccountSelector("付款账户", optionsState.options.sourceAccounts, entry.sourceAccountId) { account ->
                         onAction(EntryAction.SelectSourceAccount(account.id))
                     }
                     CategorySelector(optionsState.options.categories, entry) { category ->
@@ -46,7 +46,7 @@ internal fun EntrySelectorsSection(
                     }
                 }
                 EntryMode.INCOME -> {
-                    AccountSelector("TO", optionsState.options.destinationAccounts, entry.destinationAccountId) { account ->
+                    AccountSelector("收款账户", optionsState.options.destinationAccounts, entry.destinationAccountId) { account ->
                         onAction(EntryAction.SelectDestinationAccount(account.id))
                     }
                     CategorySelector(optionsState.options.categories, entry) { category ->
@@ -54,10 +54,10 @@ internal fun EntrySelectorsSection(
                     }
                 }
                 EntryMode.TRANSFER -> {
-                    AccountSelector("FROM", optionsState.options.sourceAccounts, entry.sourceAccountId) { account ->
+                    AccountSelector("转出账户", optionsState.options.sourceAccounts, entry.sourceAccountId) { account ->
                         onAction(EntryAction.SelectSourceAccount(account.id))
                     }
-                    AccountSelector("TO", optionsState.options.destinationAccounts, entry.destinationAccountId) { account ->
+                    AccountSelector("转入账户", optionsState.options.destinationAccounts, entry.destinationAccountId) { account ->
                         onAction(EntryAction.SelectDestinationAccount(account.id))
                     }
                 }
@@ -90,7 +90,7 @@ private fun CategorySelector(
 ) {
     val parents = categories.associateBy(Category::id)
     SelectorGroup(
-        label = "CATEGORY",
+        label = "分类",
         items = categories,
         itemLabel = { category ->
             category.parentId?.let { parentId ->
@@ -117,7 +117,7 @@ private fun <T> SelectorGroup(
         modifier = Modifier.padding(top = LedgerSpacing.sm, bottom = 4.dp),
     )
     if (items.isEmpty()) {
-        SelectorMessage("NO ACTIVE $label")
+        SelectorMessage("没有可用的$label")
         return
     }
     items.chunked(2).forEach { rowItems ->

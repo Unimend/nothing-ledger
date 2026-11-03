@@ -20,22 +20,15 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 /** Thin Android lifecycle adapter; all option rules live in feature:entry. */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class EntrySelectorsViewModel(database: LedgerDatabaseHandle) : ViewModel() {
-    private val context = MutableStateFlow<EntryState?>(null)
+    private val context = MutableStateFlow<EntryOptionsQuery?>(null)
     private val observeOptions = ObserveEntryOptions(database.accounts(), database.categories())
 
     val state: StateFlow<EntryOptionsState> = context
-        .flatMapLatest { entry ->
-            if (entry == null) {
+        .flatMapLatest { query ->
+            if (query == null) {
                 flowOf(EntryOptionsState.Loading)
             } else {
-                observeOptions(
-                    EntryOptionsQuery(
-                        mode = entry.mode,
-                        currency = entry.currency,
-                        selectedSourceAccountId = entry.sourceAccountId,
-                        selectedDestinationAccountId = entry.destinationAccountId,
-                    ),
-                )
+                observeOptions(query)
             }
         }
         .stateIn(
@@ -45,7 +38,12 @@ internal class EntrySelectorsViewModel(database: LedgerDatabaseHandle) : ViewMod
         )
 
     fun updateContext(entry: EntryState) {
-        context.value = entry
+        context.value = EntryOptionsQuery(
+            mode = entry.mode,
+            currency = entry.currency,
+            selectedSourceAccountId = entry.sourceAccountId,
+            selectedDestinationAccountId = entry.destinationAccountId,
+        )
     }
 
     companion object {

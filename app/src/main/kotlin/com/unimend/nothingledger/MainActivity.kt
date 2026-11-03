@@ -127,8 +127,17 @@ private fun LedgerApp(
 
 @Composable
 private fun AppHeader(uiState: EntryUiState, destination: ShellDestination) {
-    val status = uiState.errorMessage?.let { "ERROR / ${it.take(18)}" }
-        ?: if (destination == ShellDestination.QUICK_ENTRY) uiState.status.name else destination.name
+    val status = uiState.errorMessage?.let { "出错 / ${it.take(18)}" } ?: when (destination) {
+        ShellDestination.QUICK_ENTRY -> when (uiState.status) {
+            SaveStatus.INITIALIZING -> "准备中"
+            SaveStatus.READY -> "可以记账"
+            SaveStatus.SAVING -> "保存中"
+            SaveStatus.SAVED -> "已记下"
+            SaveStatus.ERROR -> "保存失败"
+        }
+        ShellDestination.TIMELINE -> "全部流水"
+        ShellDestination.MANAGE -> "账户与分类"
+    }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text("NOTHING\nLEDGER", color = Color.White, style = MaterialTheme.typography.titleLarge)
         Text(status, color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
@@ -139,9 +148,9 @@ private fun AppHeader(uiState: EntryUiState, destination: ShellDestination) {
 private fun ShellNavigation(selected: ShellDestination, onSelect: (ShellDestination) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(
-            ShellDestination.QUICK_ENTRY to "ENTRY",
-            ShellDestination.TIMELINE to "LIST",
-            ShellDestination.MANAGE to "MANAGE",
+            ShellDestination.QUICK_ENTRY to "记账",
+            ShellDestination.TIMELINE to "流水",
+            ShellDestination.MANAGE to "管理",
         ).forEach { (destination, label) ->
             LedgerControl(label, { onSelect(destination) }, Modifier.weight(1f), accent = destination == selected)
         }
@@ -164,9 +173,9 @@ private fun EntryContent(
     Spacer(Modifier.height(20.dp))
     Keypad { dispatch(EntryAction.EnterDigit(it)) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Key("DEL", Modifier.weight(1f)) { dispatch(EntryAction.BackspaceAmount) }
-        Key("CLEAR", Modifier.weight(1f)) { dispatch(EntryAction.ClearAmount) }
-        Key("SAVE", Modifier.weight(1f), true) { dispatch(EntryAction.RequestSave) }
+        Key("删除", Modifier.weight(1f)) { dispatch(EntryAction.BackspaceAmount) }
+        Key("清空", Modifier.weight(1f)) { dispatch(EntryAction.ClearAmount) }
+        Key("记下", Modifier.weight(1f), true) { dispatch(EntryAction.RequestSave) }
     }
     state.validationErrors.firstOrNull()?.let {
         Text("CHECK / ${it.name}", color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
@@ -214,7 +223,12 @@ private fun ManageContent(state: ManageUiState, actions: ManageActions) {
 private fun ModeRow(selected: EntryMode, onSelect: (EntryMode) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         EntryMode.entries.forEach { mode ->
-            LedgerControl(mode.name, { onSelect(mode) }, Modifier.weight(1f), accent = mode == selected)
+            val label = when (mode) {
+                EntryMode.EXPENSE -> "支出"
+                EntryMode.INCOME -> "收入"
+                EntryMode.TRANSFER -> "转账"
+            }
+            LedgerControl(label, { onSelect(mode) }, Modifier.weight(1f), accent = mode == selected)
         }
     }
 }
