@@ -1,0 +1,36 @@
+# Android / Gradle
+.gradle/
+build/
+**/build/
+local.properties
+*.iml
+.idea/
+
+# Signing and secrets
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+.env
+.env.*
+
+# Personal finance data — never commit
+*.xls
+*.xlsx
+*.csv
+*.tsv
+*.db
+*.sqlite
+*.sqlite3
+*.zip
+*.bak
+private-data/
+imports/
+backups/
+
+# OS / tooling
+.DS_Store
+captures/
+externalNativeBuild/
+.cxx/
+
