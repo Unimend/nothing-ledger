@@ -112,8 +112,10 @@ private class FakeAccounts(
 
 private class FakeTransactions(initial: List<Transaction>) : TransactionRepository {
     private val values = MutableStateFlow(initial)
-    override suspend fun save(transaction: Transaction) { values.value += transaction }
+    override suspend fun insert(transaction: Transaction) { values.value += transaction }
     override suspend fun findById(id: TransactionId): Transaction? = values.value.find { it.id == id }
-    override suspend fun softDelete(id: TransactionId) { values.value = values.value.filterNot { it.id == id } }
+    override suspend fun update(transaction: Transaction, expectedUpdatedAt: Instant): Boolean = false
+    override suspend fun softDelete(id: TransactionId, deletedAt: Instant, expectedUpdatedAt: Instant): Boolean = false
+    override suspend fun restore(id: TransactionId, deletedAt: Instant, restoredAt: Instant): Boolean = false
     override fun observeActive(): Flow<List<Transaction>> = values
 }

@@ -93,9 +93,11 @@ class CreateTransactionTest {
 
     private class MemoryRepository : TransactionRepository {
         val saved = mutableListOf<Transaction>()
-        override suspend fun save(transaction: Transaction) { saved += transaction }
+        override suspend fun insert(transaction: Transaction) { saved += transaction }
         override suspend fun findById(id: TransactionId): Transaction? = saved.find { it.id == id }
-        override suspend fun softDelete(id: TransactionId) = Unit
+        override suspend fun update(transaction: Transaction, expectedUpdatedAt: Instant): Boolean = false
+        override suspend fun softDelete(id: TransactionId, deletedAt: Instant, expectedUpdatedAt: Instant): Boolean = false
+        override suspend fun restore(id: TransactionId, deletedAt: Instant, restoredAt: Instant): Boolean = false
         override fun observeActive(): Flow<List<Transaction>> = flowOf(saved)
     }
 

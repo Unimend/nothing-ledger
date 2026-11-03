@@ -7,7 +7,6 @@ import com.unimend.nothingledger.model.Money
 import com.unimend.nothingledger.model.Transaction
 import com.unimend.nothingledger.model.TransactionId
 import com.unimend.nothingledger.model.TransactionType
-import java.time.Clock
 import java.time.Instant
 import java.util.Currency
 import java.util.UUID
@@ -16,16 +15,31 @@ import kotlinx.coroutines.flow.map
 
 public class RoomTransactionRepository internal constructor(
     private val dao: TransactionDao,
-    private val clock: Clock = Clock.systemUTC(),
 ) : TransactionRepository {
-    override suspend fun save(transaction: Transaction): Unit = dao.insert(transaction.toEntity())
+    override suspend fun insert(transaction: Transaction): Unit = dao.insert(transaction.toEntity())
 
     override suspend fun findById(id: TransactionId): Transaction? =
         dao.findActiveById(id.value.toString())?.toDomain()
 
-    override suspend fun softDelete(id: TransactionId) {
-        dao.softDelete(id.value.toString(), clock.millis())
-    }
+    override suspend fun update(transaction: Transaction, expectedUpdatedAt: Instant): Boolean =
+        transaction.toEntity().let { entity ->
+            dao.updateActive(
+                entity.id, entity.type, entity.amountMinor, entity.currencyCode,
+                entity.occurredAtEpochMillis, entity.sourceAccountId, entity.destinationAccountId,
+                entity.categoryId, entity.note, entity.updatedAtEpochMillis, expectedUpdatedAt.toEpochMilli(),
+            ) == 1
+        }
+
+    override suspend fun softDelete(
+        id: TransactionId,
+        deletedAt: Instant,
+        expectedUpdatedAt: Instant,
+    ): Boolean = dao.softDelete(
+        id.value.toString(), deletedAt.toEpochMilli(), expectedUpdatedAt.toEpochMilli(),
+    ) == 1
+
+    override suspend fun restore(id: TransactionId, deletedAt: Instant, restoredAt: Instant): Boolean =
+        dao.restore(id.value.toString(), deletedAt.toEpochMilli(), restoredAt.toEpochMilli()) == 1
 
     override fun observeActive(): Flow<List<Transaction>> =
         dao.observeActive().map { entities -> entities.map(TransactionEntity::toDomain) }

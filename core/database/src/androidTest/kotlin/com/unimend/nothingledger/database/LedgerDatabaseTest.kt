@@ -16,7 +16,9 @@ import com.unimend.nothingledger.model.TransactionId
 import com.unimend.nothingledger.model.TransactionType
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -65,15 +67,19 @@ class LedgerDatabaseTest {
             createdAt = now,
             updatedAt = now,
         )
-        val repository = RoomTransactionRepository(
-            database.transactionDao(),
-            Clock.fixed(now.plusSeconds(60), ZoneOffset.UTC),
-        )
+        val repository = RoomTransactionRepository(database.transactionDao())
 
-        repository.save(transaction)
+        repository.insert(transaction)
         assertEquals(transaction, repository.findById(transaction.id))
-        repository.softDelete(transaction.id)
+        val edited = transaction.copy(note = "Dinner", updatedAt = now.plusSeconds(30))
+        assertTrue(repository.update(edited, transaction.updatedAt))
+        assertFalse(repository.update(transaction, transaction.updatedAt))
+        val deletedAt = now.plusSeconds(60)
+        assertTrue(repository.softDelete(transaction.id, deletedAt, edited.updatedAt))
         assertNull(repository.findById(transaction.id))
+        assertTrue(repository.restore(transaction.id, deletedAt, now.plusSeconds(90)))
+        assertEquals("Dinner", repository.findById(transaction.id)?.note)
+        assertFalse(repository.restore(transaction.id, deletedAt, now.plusSeconds(120)))
     }
 
     @Test fun domainCoordinatorPersistsThroughAllRoomRepositories() = runBlocking {
@@ -120,10 +126,7 @@ class LedgerDatabaseTest {
         )
         val accountRepository = RoomAccountRepository(database.accountDao())
         val categoryRepository = RoomCategoryRepository(database.categoryDao())
-        val transactionRepository = RoomTransactionRepository(
-            database.transactionDao(),
-            Clock.fixed(now.plusSeconds(120), ZoneOffset.UTC),
-        )
+        val transactionRepository = RoomTransactionRepository(database.transactionDao())
         accountRepository.save(account)
         categoryRepository.save(category)
         val create = CreateTransaction(
@@ -156,7 +159,7 @@ class LedgerDatabaseTest {
 
         assertEquals(listOf(newer, older), transactionRepository.observeActive().first())
 
-        transactionRepository.softDelete(newer.id)
+        transactionRepository.softDelete(newer.id, now.plusSeconds(120), newer.updatedAt)
 
         assertEquals(listOf(older), transactionRepository.observeActive().first())
     }

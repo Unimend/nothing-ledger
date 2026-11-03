@@ -91,9 +91,11 @@ class ObserveTimelineTest {
     )
 
     private class FakeRepository(private val values: List<Transaction>) : TransactionRepository {
-        override suspend fun save(transaction: Transaction) = Unit
+        override suspend fun insert(transaction: Transaction) = Unit
         override suspend fun findById(id: TransactionId): Transaction? = values.find { it.id == id }
-        override suspend fun softDelete(id: TransactionId) = Unit
+        override suspend fun update(transaction: Transaction, expectedUpdatedAt: Instant): Boolean = false
+        override suspend fun softDelete(id: TransactionId, deletedAt: Instant, expectedUpdatedAt: Instant): Boolean = false
+        override suspend fun restore(id: TransactionId, deletedAt: Instant, restoredAt: Instant): Boolean = false
         override fun observeActive(): Flow<List<Transaction>> = flowOf(values)
     }
 }
