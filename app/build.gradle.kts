@@ -11,8 +11,8 @@ android {
         applicationId = "com.unimend.nothingledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 17
-        versionName = "0.3.2-unified-systems"
+        versionCode = 18
+        versionName = "0.3.3-dot-ripple-transaction"
     }
 
     compileOptions {

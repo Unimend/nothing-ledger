@@ -9,6 +9,7 @@ class LedgerInteractionTokensTest {
     fun `motion durations follow semantic order`() {
         assertTrue(LedgerMotionTokens.ImmediateMillis < LedgerMotionTokens.FeedbackMillis)
         assertTrue(LedgerMotionTokens.FeedbackMillis < LedgerMotionTokens.NavigationMillis)
+        assertTrue(LedgerMotionTokens.NavigationMillis < LedgerMotionTokens.DotRippleMillis)
     }
 
     @Test

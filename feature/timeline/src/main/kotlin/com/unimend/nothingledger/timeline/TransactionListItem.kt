@@ -1,6 +1,5 @@
 package com.unimend.nothingledger.timeline
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,11 +10,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.unimend.nothingledger.design.NothingLedgerTheme
-import com.unimend.nothingledger.design.ledgerClickable
+import com.unimend.nothingledger.design.LedgerDotRippleSurface
 import com.unimend.nothingledger.model.Transaction
 import com.unimend.nothingledger.model.TransactionType
 import java.time.ZoneId
@@ -67,36 +65,36 @@ public fun TransactionListItem(
     modifier: Modifier = Modifier,
     zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
-    Row(
-        modifier
-            .fillMaxWidth()
-            .padding(bottom = 2.dp)
-            .background(NothingLedgerTheme.colors.surface)
-            .ledgerClickable(role = Role.Button) { onClick(transaction) }
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+    LedgerDotRippleSurface(
+        onClick = { onClick(transaction) },
+        modifier = modifier.fillMaxWidth().padding(bottom = 4.dp),
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(transaction.timelineTitle(), color = Color.White, style = MaterialTheme.typography.bodyLarge)
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(transaction.timelineTitle(), color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    transaction.note?.takeIf(String::isNotBlank)
+                        ?: transaction.occurredAt.atZone(zoneId).format(LIST_TIME_FORMATTER),
+                    color = NothingLedgerTheme.colors.contentMuted,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                )
+            }
             Text(
-                transaction.note?.takeIf(String::isNotBlank)
-                    ?: transaction.occurredAt.atZone(zoneId).format(LIST_TIME_FORMATTER),
-                color = NothingLedgerTheme.colors.contentMuted,
-                style = MaterialTheme.typography.bodyMedium,
+                transaction.timelineAmount(),
+                color = if (transaction.type == TransactionType.EXPENSE) {
+                    NothingLedgerTheme.colors.accent
+                } else {
+                    NothingLedgerTheme.colors.contentPrimary
+                },
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.End,
                 maxLines = 1,
             )
         }
-        Text(
-            transaction.timelineAmount(),
-            color = if (transaction.type == TransactionType.EXPENSE) {
-                NothingLedgerTheme.colors.accent
-            } else {
-                NothingLedgerTheme.colors.contentPrimary
-            },
-            style = MaterialTheme.typography.labelLarge,
-            textAlign = TextAlign.End,
-            maxLines = 1,
-        )
     }
 }
 
