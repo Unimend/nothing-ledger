@@ -44,6 +44,13 @@ internal enum class WorkbenchLayoutDraft(
     ACCOUNTS("04", "账户", "净资产与账户列表"),
     DETAIL("05", "账单详情", "单条账单的完整信息"),
     EDITOR("06", "记账编辑", "金额、分类、账户与数字键盘"),
+    TAGS("07", "标签系统", "标签管理、颜色与使用状态"),
+    MINI_KEYPAD("08", "迷你数字键盘", "金额输入与快捷运算"),
+    INCOME_EXPENSE_STATS("09", "收支统计", "按日、月、年查看收入与支出"),
+    ASSET_TREND("10", "资产走势", "净资产随月份或年份的变化"),
+    INCOME_EXPENSE_COMPARE("11", "收支对比", "同一周期内收入与支出的差距"),
+    EXPENSE_SHARE("12", "支出占比", "不同支出分类的构成比例"),
+    INCOME_EXPENSE_HEATMAP("13", "收支热力", "以日期密度观察收支活跃程度"),
 }
 
 @Composable
@@ -114,6 +121,13 @@ internal fun WorkbenchLayoutDraftScreen(
             WorkbenchLayoutDraft.ACCOUNTS -> AccountsDraft()
             WorkbenchLayoutDraft.DETAIL -> DetailDraft()
             WorkbenchLayoutDraft.EDITOR -> EditorDraft()
+            WorkbenchLayoutDraft.TAGS -> TagsDraft()
+            WorkbenchLayoutDraft.MINI_KEYPAD -> MiniNumericKeypadDraft()
+            WorkbenchLayoutDraft.INCOME_EXPENSE_STATS -> IncomeExpenseStatsDraft()
+            WorkbenchLayoutDraft.ASSET_TREND -> AssetTrendDraft()
+            WorkbenchLayoutDraft.INCOME_EXPENSE_COMPARE -> IncomeExpenseCompareDraft()
+            WorkbenchLayoutDraft.EXPENSE_SHARE -> ExpenseShareDraft()
+            WorkbenchLayoutDraft.INCOME_EXPENSE_HEATMAP -> IncomeExpenseHeatmapDraft()
         }
         Spacer(Modifier.height(64.dp))
     }

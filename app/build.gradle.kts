@@ -11,8 +11,8 @@ android {
         applicationId = "com.unimend.nothingledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 19
-        versionName = "0.3.4-feedback-overlay-fullscreen-drafts"
+        versionCode = 20
+        versionName = "0.3.5-workbench-data-visuals"
     }
 
     compileOptions {
