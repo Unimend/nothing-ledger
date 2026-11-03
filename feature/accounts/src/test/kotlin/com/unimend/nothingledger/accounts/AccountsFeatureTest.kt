@@ -52,7 +52,7 @@ class AccountsFeatureTest {
     @Test
     fun `archive is idempotent and never rewrites opening balance`() = runBlocking {
         val original = account(id, name = "现金", opening = 8_800)
-        val accounts = FakeAccounts(listOf(original))
+        val accounts = FakeAccounts(listOf(original, account(AccountId(UUID(0, 2)), name = "银行卡")))
         val manager = ManageAccounts(accounts, Clock.fixed(now, ZoneOffset.UTC))
 
         val archived = manager.archive(id)
@@ -62,6 +62,15 @@ class AccountsFeatureTest {
         assertEquals(archived, repeated)
         assertFalse(original.isArchived)
         assertEquals(original.openingBalance, archived.openingBalance)
+    }
+
+    @Test
+    fun `last active account cannot be archived`() = runBlocking {
+        val accounts = FakeAccounts(listOf(account(id)))
+        val manager = ManageAccounts(accounts, Clock.fixed(now, ZoneOffset.UTC))
+
+        assertTrue(runCatching { manager.archive(id) }.isFailure)
+        assertFalse(requireNotNull(accounts.findById(id)).isArchived)
     }
 
     @Test

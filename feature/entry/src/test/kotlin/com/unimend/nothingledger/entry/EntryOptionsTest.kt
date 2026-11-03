@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -35,8 +34,7 @@ class EntryOptionsTest {
     @Test
     fun `expense exposes active matching-currency sources and expense categories`() = runBlocking {
         val states = observer()(EntryOptionsQuery(EntryMode.EXPENSE, cny)).toList()
-        assertInstanceOf(EntryOptionsState.Loading::class.java, states.first())
-        val ready = states.last() as EntryOptionsState.Ready
+        val ready = states.single() as EntryOptionsState.Ready
 
         assertEquals(listOf(b.id, a.id), ready.options.sourceAccounts.map(Account::id))
         assertTrue(ready.options.destinationAccounts.isEmpty())

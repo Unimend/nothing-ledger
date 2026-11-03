@@ -11,7 +11,6 @@ import java.util.Currency
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.onStart
 
 public data class EntryOptionsQuery(
     public val mode: EntryMode,
@@ -82,8 +81,7 @@ public class ObserveEntryOptions(
             }
             val state: EntryOptionsState = EntryOptionsState.Ready(options)
             state
-        }.onStart { emit(EntryOptionsState.Loading) }
-            .catch { error -> emit(EntryOptionsState.Failure(error.message ?: "Entry options unavailable")) }
+        }.catch { error -> emit(EntryOptionsState.Failure(error.message ?: "Entry options unavailable")) }
 
 }
 

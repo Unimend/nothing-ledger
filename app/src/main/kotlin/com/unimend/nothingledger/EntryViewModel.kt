@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 internal enum class SaveStatus { INITIALIZING, READY, SAVING, SAVED, ERROR }
@@ -94,10 +95,14 @@ internal class EntryViewModel(
     }
 
     private suspend fun ensureDefaults() {
-        if (accounts.findById(LedgerDefaults.walletId) == null) {
+        val existingAccounts = accounts.observeAll().first()
+        val defaultAccount = existingAccounts.find { it.id == LedgerDefaults.walletId }
+        if (defaultAccount == null) {
             accounts.save(
                 Account(LedgerDefaults.walletId, "微信钱包", AccountKind.PAYMENT, AccountBalance(0, LedgerDefaults.currency), 0, null),
             )
+        } else if (existingAccounts.none { !it.isArchived } && defaultAccount.isArchived) {
+            accounts.save(defaultAccount.copy(archivedAt = null))
         }
         if (categories.findById(LedgerDefaults.expenseCategoryId) == null) {
             categories.save(

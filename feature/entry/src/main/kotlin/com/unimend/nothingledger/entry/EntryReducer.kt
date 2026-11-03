@@ -3,6 +3,7 @@ package com.unimend.nothingledger.entry
 public object EntryReducer {
     public fun reduce(state: EntryState, action: EntryAction): EntryTransition = when (action) {
         is EntryAction.EnterDigit -> transition(state.copy(amount = state.amount.append(action.digit)))
+        EntryAction.EnterDecimalSeparator -> transition(state.copy(amount = state.amount.appendDecimalSeparator()))
         EntryAction.BackspaceAmount -> transition(state.copy(amount = state.amount.backspace()))
         EntryAction.ClearAmount -> transition(state.copy(amount = AmountInput()))
         is EntryAction.ChangeMode -> transition(changeMode(state, action.mode))

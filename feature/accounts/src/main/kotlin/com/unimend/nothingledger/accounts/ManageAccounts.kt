@@ -44,6 +44,8 @@ public class ManageAccounts(
     public suspend fun archive(id: AccountId): Account = writes.withLock {
         val account = requireNotNull(repository.findById(id)) { "Account does not exist" }
         if (account.isArchived) return account
+        val activeCount = repository.observeAll().first().count { !it.isArchived }
+        require(activeCount > 1) { "At least one active account must remain" }
         return account.archive(clock.instant()).also { repository.save(it) }
     }
 

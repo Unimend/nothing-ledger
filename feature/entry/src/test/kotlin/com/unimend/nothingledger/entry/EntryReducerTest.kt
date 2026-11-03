@@ -17,21 +17,30 @@ class EntryReducerTest {
     private val account = AccountId(UUID.randomUUID())
     private val category = CategoryId(UUID.randomUUID())
 
-    @Test fun `keypad stores exact minor units without floating point`() {
+    @Test fun `keypad enters whole yuan by default without floating point`() {
         var state = EntryState.initial(now, cny)
-        listOf(1, 2, 3, 4).forEach { state = EntryReducer.reduce(state, EntryAction.EnterDigit(it)).state }
-        assertEquals("1234", state.amount.digits)
-        assertEquals(1234L, state.amount.minorUnits)
+        listOf(1, 2, 3).forEach { state = EntryReducer.reduce(state, EntryAction.EnterDigit(it)).state }
+        assertEquals("123", state.amount.digits)
+        assertEquals(12_300L, state.amount.minorUnits)
         state = EntryReducer.reduce(state, EntryAction.BackspaceAmount).state
+        assertEquals(1_200L, state.amount.minorUnits)
+    }
+
+    @Test fun `decimal separator accepts at most two fraction digits`() {
+        var state = EntryState.initial(now, cny)
+        state = EntryReducer.reduce(state, EntryAction.EnterDigit(1)).state
+        state = EntryReducer.reduce(state, EntryAction.EnterDecimalSeparator).state
+        listOf(2, 3, 4).forEach { state = EntryReducer.reduce(state, EntryAction.EnterDigit(it)).state }
+        assertEquals("1.23", state.amount.digits)
         assertEquals(123L, state.amount.minorUnits)
     }
 
     @Test fun `amount is capped instead of overflowing`() {
         var state = EntryState.initial(now, cny)
-        repeat(AmountInput.MAX_DIGITS + 4) {
+        repeat(AmountInput.MAX_WHOLE_DIGITS + 4) {
             state = EntryReducer.reduce(state, EntryAction.EnterDigit(9)).state
         }
-        assertEquals(AmountInput.MAX_DIGITS, state.amount.digits.length)
+        assertEquals(AmountInput.MAX_WHOLE_DIGITS, state.amount.digits.length)
     }
 
     @Test fun `expense requires amount source and category`() {
@@ -49,7 +58,7 @@ class EntryReducerTest {
 
     @Test fun `valid expense emits immutable submission`() {
         val state = EntryState.initial(now, cny).copy(
-            amount = AmountInput("1250"),
+            amount = AmountInput("12.50"),
             sourceAccountId = account,
             categoryId = category,
             note = "  lunch  ",
@@ -77,7 +86,7 @@ class EntryReducerTest {
 
     @Test fun `clear stores one recoverable draft and restore is exact`() {
         val original = EntryState.initial(now, cny).copy(
-            amount = AmountInput("9988"),
+            amount = AmountInput("99.88"),
             sourceAccountId = account,
             categoryId = category,
             note = "Dinner",

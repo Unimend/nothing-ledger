@@ -15,23 +15,44 @@ public data class AmountInput(
     public val digits: String = "",
 ) {
     init {
-        require(digits.all(Char::isDigit)) { "Amount input accepts digits only" }
-        require(digits.length <= MAX_DIGITS) { "Amount is too large" }
+        require(digits.matches(INPUT_PATTERN)) { "Amount must be a decimal number with at most two fraction digits" }
+        require(digits.substringBefore('.').length <= MAX_WHOLE_DIGITS) { "Amount is too large" }
     }
 
     public val minorUnits: Long
-        get() = digits.ifEmpty { "0" }.toLong()
+        get() {
+            if (digits.isEmpty()) return 0
+            val whole = digits.substringBefore('.').ifEmpty { "0" }.toLong()
+            val fraction = digits.substringAfter('.', "").padEnd(2, '0').take(2).ifEmpty { "0" }.toLong()
+            return Math.addExact(Math.multiplyExact(whole, 100L), fraction)
+        }
+
+    public val displayText: String get() = digits.ifEmpty { "0" }
 
     public fun append(digit: Int): AmountInput {
         require(digit in 0..9) { "Digit must be between 0 and 9" }
-        val next = (digits + digit).trimStart('0').takeIf(String::isNotEmpty) ?: "0"
-        return if (next.length > MAX_DIGITS) this else AmountInput(next)
+        if ('.' in digits) {
+            val fractionLength = digits.substringAfter('.').length
+            return if (fractionLength >= 2) this else AmountInput(digits + digit)
+        }
+        val next = when (digits) {
+            "", "0" -> digit.toString()
+            else -> digits + digit
+        }
+        return if (next.length > MAX_WHOLE_DIGITS) this else AmountInput(next)
+    }
+
+    public fun appendDecimalSeparator(): AmountInput = when {
+        '.' in digits -> this
+        digits.isEmpty() -> AmountInput("0.")
+        else -> AmountInput("$digits.")
     }
 
     public fun backspace(): AmountInput = AmountInput(digits.dropLast(1))
 
     public companion object {
-        public const val MAX_DIGITS: Int = 12
+        public const val MAX_WHOLE_DIGITS: Int = 10
+        private val INPUT_PATTERN: Regex = Regex("(?:\\d+)?(?:\\.\\d{0,2})?")
     }
 }
 

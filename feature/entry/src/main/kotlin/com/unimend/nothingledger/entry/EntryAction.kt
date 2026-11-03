@@ -6,6 +6,7 @@ import java.time.Instant
 
 public sealed interface EntryAction {
     public data class EnterDigit(public val digit: Int) : EntryAction
+    public data object EnterDecimalSeparator : EntryAction
     public data object BackspaceAmount : EntryAction
     public data object ClearAmount : EntryAction
     public data class ChangeMode(public val mode: EntryMode) : EntryAction

@@ -168,15 +168,16 @@ private fun EntryContent(
         dispatch(EntryAction.ChangeMode(mode))
     }
     Spacer(Modifier.height(24.dp))
-    LedgerAmountText(formatAmount(state.amount.minorUnits), Modifier.fillMaxWidth())
+    LedgerAmountText("¥ ${state.amount.displayText}", Modifier.fillMaxWidth())
     EntrySelectorsSection(state, entryOptions, dispatch)
     Spacer(Modifier.height(20.dp))
-    Keypad { dispatch(EntryAction.EnterDigit(it)) }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Key("删除", Modifier.weight(1f)) { dispatch(EntryAction.BackspaceAmount) }
-        Key("清空", Modifier.weight(1f)) { dispatch(EntryAction.ClearAmount) }
-        Key("记下", Modifier.weight(1f), true) { dispatch(EntryAction.RequestSave) }
-    }
+    Keypad(
+        onDigit = { dispatch(EntryAction.EnterDigit(it)) },
+        onDecimal = { dispatch(EntryAction.EnterDecimalSeparator) },
+        onBackspace = { dispatch(EntryAction.BackspaceAmount) },
+        onClear = { dispatch(EntryAction.ClearAmount) },
+        onSave = { dispatch(EntryAction.RequestSave) },
+    )
     state.validationErrors.firstOrNull()?.let {
         Text("CHECK / ${it.name}", color = Color(0xFFFF2D2D), style = MaterialTheme.typography.labelMedium)
     }
@@ -234,14 +235,30 @@ private fun ModeRow(selected: EntryMode, onSelect: (EntryMode) -> Unit) {
 }
 
 @Composable
-private fun Keypad(onDigit: (Int) -> Unit) {
+private fun Keypad(
+    onDigit: (Int) -> Unit,
+    onDecimal: () -> Unit,
+    onBackspace: () -> Unit,
+    onClear: () -> Unit,
+    onSave: () -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(listOf(1, 2, 3), listOf(4, 5, 6), listOf(7, 8, 9)).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { digit -> Key(digit.toString(), Modifier.weight(1f)) { onDigit(digit) } }
-            }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(1, 2, 3).forEach { digit -> Key(digit.toString(), Modifier.weight(1f)) { onDigit(digit) } }
+            Key("删除", Modifier.weight(1f), onClick = onBackspace)
         }
-        Key("0", Modifier.fillMaxWidth()) { onDigit(0) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(4, 5, 6).forEach { digit -> Key(digit.toString(), Modifier.weight(1f)) { onDigit(digit) } }
+            Key("清空", Modifier.weight(1f), onClick = onClear)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(7, 8, 9).forEach { digit -> Key(digit.toString(), Modifier.weight(1f)) { onDigit(digit) } }
+            Key(".", Modifier.weight(1f), onClick = onDecimal)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Key("0", Modifier.weight(2f)) { onDigit(0) }
+            Key("记下", Modifier.weight(2f), accent = true, onClick = onSave)
+        }
     }
 }
 
@@ -249,6 +266,4 @@ private fun Keypad(onDigit: (Int) -> Unit) {
 private fun Key(label: String, modifier: Modifier, accent: Boolean = false, onClick: () -> Unit) {
     LedgerControl(label, onClick, modifier.height(52.dp), accent = accent)
 }
-
-private fun formatAmount(minorUnits: Long): String = "¥ %,d.%02d".format(minorUnits / 100, minorUnits % 100)
 
