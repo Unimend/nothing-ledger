@@ -1,5 +1,7 @@
 package com.unimend.nothingledger
 
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,10 +19,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.unimend.nothingledger.design.GestureAxisLock
+import com.unimend.nothingledger.design.HorizontalSwipeAction
+import com.unimend.nothingledger.design.HorizontalSwipeConfig
+import com.unimend.nothingledger.design.HorizontalSwipeState
 import com.unimend.nothingledger.design.LedgerControl
 import com.unimend.nothingledger.design.LedgerSpacing
 import com.unimend.nothingledger.design.LedgerSurface
@@ -116,6 +128,9 @@ private fun EntryDatePicker(
     onNextMonth: () -> Unit,
     onSelectDate: (LocalDate) -> Unit,
 ) {
+    val touchSlop = LocalViewConfiguration.current.touchSlop
+    val swipeDistance = with(LocalDensity.current) { 64.dp.toPx() }
+    val swipeConfig = HorizontalSwipeConfig(touchSlop, swipeDistance)
     LedgerSurface(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth().padding(10.dp)) {
             Row(
@@ -134,38 +149,69 @@ private fun EntryDatePicker(
                 LedgerControl("NEXT", onNextMonth, Modifier.weight(1f))
             }
             Spacer(Modifier.height(LedgerSpacing.xs))
-            Row(Modifier.fillMaxWidth()) {
-                WEEKDAYS.forEach { label ->
-                    Text(
-                        label,
-                        modifier = Modifier.weight(1f),
-                        color = NothingLedgerTheme.colors.contentMuted,
-                        fontSize = 9.sp,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-            buildEntryDateGrid(month).weeks.forEach { week ->
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .entryDateSwipe(swipeConfig, onPreviousMonth, onNextMonth),
+            ) {
                 Row(Modifier.fillMaxWidth()) {
-                    week.forEach { date ->
-                        if (date == null) {
-                            Spacer(Modifier.weight(1f).height(48.dp))
-                        } else {
-                            Text(
-                                text = date.dayOfMonth.toString(),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .ledgerClickable { onSelectDate(date) }
-                                    .padding(top = 15.dp),
-                                color = if (date == selectedDate) NothingLedgerTheme.colors.accent else Color.White,
-                                fontSize = 12.sp,
-                                textAlign = TextAlign.Center,
-                            )
+                    WEEKDAYS.forEach { label ->
+                        Text(
+                            label,
+                            modifier = Modifier.weight(1f),
+                            color = NothingLedgerTheme.colors.contentMuted,
+                            fontSize = 9.sp,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+                buildEntryDateGrid(month).weeks.forEach { week ->
+                    Row(Modifier.fillMaxWidth()) {
+                        week.forEach { date ->
+                            if (date == null) {
+                                Spacer(Modifier.weight(1f).height(48.dp))
+                            } else {
+                                Text(
+                                    text = date.dayOfMonth.toString(),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp)
+                                        .ledgerClickable { onSelectDate(date) }
+                                        .padding(top = 15.dp),
+                                    color = if (date == selectedDate) NothingLedgerTheme.colors.accent else Color.White,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+private fun Modifier.entryDateSwipe(
+    config: HorizontalSwipeConfig,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+): Modifier = pointerInput(config, onPreviousMonth, onNextMonth) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false)
+        var swipe = HorizontalSwipeState()
+        var pressed = true
+        while (pressed) {
+            val event = awaitPointerEvent()
+            val change: PointerInputChange = event.changes.firstOrNull() ?: break
+            val movement: Offset = change.positionChange()
+            swipe = swipe.move(movement.x, movement.y, config)
+            if (swipe.axisLock == GestureAxisLock.Horizontal) change.consume()
+            pressed = change.pressed
+        }
+        when (swipe.finish(config)) {
+            HorizontalSwipeAction.Previous -> onPreviousMonth()
+            HorizontalSwipeAction.Next -> onNextMonth()
+            HorizontalSwipeAction.None -> Unit
         }
     }
 }
