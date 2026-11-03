@@ -33,7 +33,7 @@ class MainActivity : Activity() {
 
             paint.color = Color.rgb(255, 45, 45)
             paint.textSize = unit * 0.58f
-            canvas.drawText("CORE DIAGNOSTICS / 0.0.1", left, unit * 6.1f, paint)
+            canvas.drawText("CORE DIAGNOSTICS / 0.0.2", left, unit * 6.1f, paint)
 
             paint.typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
             paint.textSize = unit * 0.72f
@@ -42,7 +42,7 @@ class MainActivity : Activity() {
                 "02  TRANSACTION     PASS",
                 "03  DOMAIN RULES    PASS",
                 "04  TEST BASELINE   PASS",
-                "05  DATABASE        NEXT",
+                "05  DATABASE        PASS",
                 "06  NOTHING UI      NEXT",
             )
             rows.forEachIndexed { index, row ->
