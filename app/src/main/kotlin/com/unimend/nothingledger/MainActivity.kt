@@ -52,92 +52,109 @@ import com.unimend.nothingledger.timeline.TimelineHomePage
 import com.unimend.nothingledger.timeline.TransactionDetailState
 import com.unimend.nothingledger.timeline.TransactionDetailActionState
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.unimend.nothingledger.database.LedgerDatabaseHandle
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val database = (application as LedgerApplication).database
         setContent {
-            val viewModel: EntryViewModel = viewModel(factory = EntryViewModel.factory(database))
-            val uiState by viewModel.uiState.collectAsState()
-            val selectorsViewModel: EntrySelectorsViewModel = viewModel(factory = EntrySelectorsViewModel.factory(database))
-            val entryOptions by selectorsViewModel.state.collectAsState()
-            LaunchedEffect(uiState.entry) { selectorsViewModel.updateContext(uiState.entry) }
-            val timelineViewModel: TimelineViewModel = viewModel(factory = TimelineViewModel.factory(database))
-            val timelineState by timelineViewModel.uiState.collectAsState()
-            val calendarViewModel: CalendarViewModel = viewModel(factory = CalendarViewModel.factory(database))
-            val calendarState by calendarViewModel.state.collectAsState()
-            val accountsViewModel: AccountsViewModel = viewModel(factory = AccountsViewModel.factory(database))
-            val accountsState by accountsViewModel.accounts.collectAsState()
-            val accountEditor by accountsViewModel.editor.collectAsState()
-            val categoriesViewModel: CategoriesViewModel = viewModel(factory = CategoriesViewModel.factory(database))
-            val categoriesState by categoriesViewModel.state.collectAsState()
-            val categoryError by categoriesViewModel.commandError.collectAsState()
-            var navigationState by remember { mutableStateOf(LedgerNavigationState()) }
-            fun navigate(action: LedgerNavigationAction) {
-                val transition = LedgerNavigationReducer.reduce(navigationState, action)
-                navigationState = transition.state
-                if (transition.effect == LedgerNavigationEffect.ExitRequested) finish()
-            }
-            val detailActionsViewModel: TransactionDetailActionsViewModel = viewModel(
-                factory = TransactionDetailActionsViewModel.factory(database),
-            )
-            val transactionDetailActions by detailActionsViewModel.state.collectAsState()
-            val detailDestination = navigationState.visiblePage as? PageDestination.TransactionDetail
-            val transactionDetail = detailDestination?.let { destination ->
-                val id = TransactionId(UUID.fromString(destination.transactionId.value))
-                val detailViewModel: TransactionDetailViewModel = viewModel(
-                    key = "transaction-detail-${id.value}",
-                    factory = TransactionDetailViewModel.factory(database, id),
-                )
-                val state by detailViewModel.state.collectAsState()
-                state
-            }
-            LaunchedEffect(transactionDetail) {
-                val ready = transactionDetail as? TransactionDetailState.Ready ?: return@LaunchedEffect
-                detailActionsViewModel.open(ready.detail.transaction)
-            }
-            val manageActions = remember(accountsViewModel, categoriesViewModel) {
-                ManageActions(
-                    beginAccountCreate = accountsViewModel::beginCreate,
-                    beginAccountRename = { accountsViewModel.beginRename(it.account.id, it.account.name) },
-                    changeAccountName = accountsViewModel::changeName,
-                    saveAccount = accountsViewModel::save,
-                    cancelAccount = accountsViewModel::cancel,
-                    archiveAccount = { accountsViewModel.archive(it.account.id) },
-                    categoryAction = categoriesViewModel::dispatch,
-                )
-            }
+            var root by remember { mutableStateOf(RootSurface.WORKBENCH) }
             NothingLedgerTheme {
-                LedgerApp(
-                    uiState = uiState,
-                    entryOptions = entryOptions,
-                    timelineState = timelineState,
-                    timelineActions = TimelineActions(
-                        previousMonth = timelineViewModel::showPreviousMonth,
-                        currentMonth = timelineViewModel::showCurrentMonth,
-                        nextMonth = timelineViewModel::showNextMonth,
-                    ),
-                    calendarState = calendarState,
-                    manageState = ManageUiState(accountsState, accountEditor, categoriesState, categoryError),
-                    entryAction = viewModel::dispatch,
-                    calendarActions = CalendarActions(
-                        previousMonth = calendarViewModel::previousMonth,
-                        nextMonth = calendarViewModel::nextMonth,
-                        selectDate = calendarViewModel::selectDate,
-                    ),
-                    navigationState = navigationState,
-                    navigate = ::navigate,
-                    transactionDetail = transactionDetail,
-                    transactionDetailActions = transactionDetailActions,
-                    onDeleteTransaction = detailActionsViewModel::delete,
-                    onUndoDelete = detailActionsViewModel::undoDelete,
-                    manageActions = manageActions,
-                )
+                when (root) {
+                    RootSurface.WORKBENCH -> WorkbenchScreen(
+                        onOpenProductPreview = { root = RootSurface.PRODUCT_PREVIEW },
+                        onExit = ::finish,
+                    )
+                    RootSurface.PRODUCT_PREVIEW -> ProductPreview(
+                        database = (application as LedgerApplication).database,
+                        onExitPreview = { root = RootSurface.WORKBENCH },
+                    )
+                }
             }
         }
     }
+}
+
+private enum class RootSurface { WORKBENCH, PRODUCT_PREVIEW }
+
+@Composable
+private fun ProductPreview(database: LedgerDatabaseHandle, onExitPreview: () -> Unit) {
+    val entryViewModel: EntryViewModel = viewModel(factory = EntryViewModel.factory(database))
+    val uiState by entryViewModel.uiState.collectAsState()
+    val selectorsViewModel: EntrySelectorsViewModel = viewModel(factory = EntrySelectorsViewModel.factory(database))
+    val entryOptions by selectorsViewModel.state.collectAsState()
+    LaunchedEffect(uiState.entry) { selectorsViewModel.updateContext(uiState.entry) }
+    val timelineViewModel: TimelineViewModel = viewModel(factory = TimelineViewModel.factory(database))
+    val timelineState by timelineViewModel.uiState.collectAsState()
+    val calendarViewModel: CalendarViewModel = viewModel(factory = CalendarViewModel.factory(database))
+    val calendarState by calendarViewModel.state.collectAsState()
+    val accountsViewModel: AccountsViewModel = viewModel(factory = AccountsViewModel.factory(database))
+    val accountsState by accountsViewModel.accounts.collectAsState()
+    val accountEditor by accountsViewModel.editor.collectAsState()
+    val categoriesViewModel: CategoriesViewModel = viewModel(factory = CategoriesViewModel.factory(database))
+    val categoriesState by categoriesViewModel.state.collectAsState()
+    val categoryError by categoriesViewModel.commandError.collectAsState()
+    var navigationState by remember { mutableStateOf(LedgerNavigationState()) }
+    fun navigate(action: LedgerNavigationAction) {
+        val transition = LedgerNavigationReducer.reduce(navigationState, action)
+        navigationState = transition.state
+        if (transition.effect == LedgerNavigationEffect.ExitRequested) onExitPreview()
+    }
+    val detailActionsViewModel: TransactionDetailActionsViewModel = viewModel(
+        factory = TransactionDetailActionsViewModel.factory(database),
+    )
+    val transactionDetailActions by detailActionsViewModel.state.collectAsState()
+    val detailDestination = navigationState.visiblePage as? PageDestination.TransactionDetail
+    val transactionDetail = detailDestination?.let { destination ->
+        val id = TransactionId(UUID.fromString(destination.transactionId.value))
+        val detailViewModel: TransactionDetailViewModel = viewModel(
+            key = "transaction-detail-${id.value}",
+            factory = TransactionDetailViewModel.factory(database, id),
+        )
+        val state by detailViewModel.state.collectAsState()
+        state
+    }
+    LaunchedEffect(transactionDetail) {
+        val ready = transactionDetail as? TransactionDetailState.Ready ?: return@LaunchedEffect
+        detailActionsViewModel.open(ready.detail.transaction)
+    }
+    val manageActions = remember(accountsViewModel, categoriesViewModel) {
+        ManageActions(
+            beginAccountCreate = accountsViewModel::beginCreate,
+            beginAccountRename = { accountsViewModel.beginRename(it.account.id, it.account.name) },
+            changeAccountName = accountsViewModel::changeName,
+            saveAccount = accountsViewModel::save,
+            cancelAccount = accountsViewModel::cancel,
+            archiveAccount = { accountsViewModel.archive(it.account.id) },
+            categoryAction = categoriesViewModel::dispatch,
+        )
+    }
+    LedgerApp(
+        uiState = uiState,
+        entryOptions = entryOptions,
+        timelineState = timelineState,
+        timelineActions = TimelineActions(
+            previousMonth = timelineViewModel::showPreviousMonth,
+            currentMonth = timelineViewModel::showCurrentMonth,
+            nextMonth = timelineViewModel::showNextMonth,
+        ),
+        calendarState = calendarState,
+        manageState = ManageUiState(accountsState, accountEditor, categoriesState, categoryError),
+        entryAction = entryViewModel::dispatch,
+        calendarActions = CalendarActions(
+            previousMonth = calendarViewModel::previousMonth,
+            nextMonth = calendarViewModel::nextMonth,
+            selectDate = calendarViewModel::selectDate,
+        ),
+        navigationState = navigationState,
+        navigate = ::navigate,
+        transactionDetail = transactionDetail,
+        transactionDetailActions = transactionDetailActions,
+        onDeleteTransaction = detailActionsViewModel::delete,
+        onUndoDelete = detailActionsViewModel::undoDelete,
+        manageActions = manageActions,
+    )
 }
 
 @Composable

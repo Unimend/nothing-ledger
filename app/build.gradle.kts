@@ -11,8 +11,8 @@ android {
         applicationId = "com.unimend.nothingledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "0.2.0-navigation-foundation"
+        versionCode = 15
+        versionName = "0.3.0-component-workbench"
     }
 
     compileOptions {
@@ -47,5 +47,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.coroutines.android)
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
 
