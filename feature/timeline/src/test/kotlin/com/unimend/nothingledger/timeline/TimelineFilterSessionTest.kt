@@ -2,6 +2,9 @@ package com.unimend.nothingledger.timeline
 
 import com.unimend.nothingledger.model.AccountId
 import com.unimend.nothingledger.model.CategoryId
+import com.unimend.nothingledger.design.HorizontalSwipeAction
+import com.unimend.nothingledger.design.HorizontalSwipeConfig
+import com.unimend.nothingledger.design.HorizontalSwipeState
 import java.time.YearMonth
 import java.util.UUID
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -88,6 +91,23 @@ class TimelineFilterSessionTest {
         assertEquals(initialMonth, current.query.month)
         assertEquals("salary", current.query.text)
         assertEquals(accountId, current.query.accountId)
+    }
+
+    @Test fun `local swipe directions select adjacent months`() {
+        val config = HorizontalSwipeConfig(12f, 56f)
+        val left = HorizontalSwipeState().move(-80f, 4f, config).finish(config)
+        val right = HorizontalSwipeState().move(80f, 4f, config).finish(config)
+        val afterLeft = TimelineFilterReducer.reduce(
+            TimelineFilterSession.initial(initialMonth),
+            if (left == HorizontalSwipeAction.Next) TimelineFilterAction.NextMonth else TimelineFilterAction.PreviousMonth,
+        )
+        val afterRight = TimelineFilterReducer.reduce(
+            TimelineFilterSession.initial(initialMonth),
+            if (right == HorizontalSwipeAction.Previous) TimelineFilterAction.PreviousMonth else TimelineFilterAction.NextMonth,
+        )
+
+        assertEquals(YearMonth.of(2026, 12), afterLeft.query.month)
+        assertEquals(YearMonth.of(2026, 10), afterRight.query.month)
     }
 
     @Test fun `blank search is retained for editing but does not count as active`() {

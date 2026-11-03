@@ -1,6 +1,8 @@
 package com.unimend.nothingledger
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +16,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -22,6 +30,10 @@ import com.unimend.nothingledger.design.LedgerControl
 import com.unimend.nothingledger.design.LedgerSpacing
 import com.unimend.nothingledger.design.LedgerSurface
 import com.unimend.nothingledger.design.NothingLedgerTheme
+import com.unimend.nothingledger.design.GestureAxisLock
+import com.unimend.nothingledger.design.HorizontalSwipeAction
+import com.unimend.nothingledger.design.HorizontalSwipeConfig
+import com.unimend.nothingledger.design.HorizontalSwipeState
 import com.unimend.nothingledger.design.ledgerClickable
 import com.unimend.nothingledger.model.Transaction
 import com.unimend.nothingledger.model.TransactionType
@@ -58,36 +70,58 @@ internal fun CalendarSection(
         when (state) {
             is CalendarState.Loading -> CalendarMessage("READING / CALENDAR")
             is CalendarState.Failure -> CalendarMessage("ERROR / ${state.message.take(36)}", alert = true)
-            is CalendarState.Ready -> CalendarGrid(state.month, onSelectDate)
+            is CalendarState.Ready -> CalendarGrid(
+                month = state.month,
+                onSelectDate = onSelectDate,
+                onPreviousMonth = onPreviousMonth,
+                onNextMonth = onNextMonth,
+            )
         }
     }
 }
 
 @Composable
-private fun CalendarGrid(month: CalendarMonth, onSelectDate: (LocalDate) -> Unit) {
-    Row(Modifier.fillMaxWidth()) {
-        WEEKDAY_LABELS.forEach { label ->
-            Text(
-                label,
-                modifier = Modifier.weight(1f).padding(bottom = 6.dp),
-                color = NothingLedgerTheme.colors.contentMuted,
-                fontSize = 10.sp,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-    month.weeks.forEach { week ->
+private fun CalendarGrid(
+    month: CalendarMonth,
+    onSelectDate: (LocalDate) -> Unit,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+) {
+    val touchSlop = LocalViewConfiguration.current.touchSlop
+    val swipeDistance = with(LocalDensity.current) { 64.dp.toPx() }
+    val swipeConfig = HorizontalSwipeConfig(
+        directionLockDistance = touchSlop,
+        actionDistance = swipeDistance,
+    )
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .calendarMonthSwipe(swipeConfig, onPreviousMonth, onNextMonth),
+    ) {
         Row(Modifier.fillMaxWidth()) {
-            week.forEach { day ->
-                if (day == null) {
-                    Spacer(Modifier.weight(1f).height(58.dp))
-                } else {
-                    CalendarCell(
-                        day = day,
-                        selected = day.date == month.query.selectedDate,
-                        onClick = { onSelectDate(day.date) },
-                        modifier = Modifier.weight(1f),
-                    )
+            WEEKDAY_LABELS.forEach { label ->
+                Text(
+                    label,
+                    modifier = Modifier.weight(1f).padding(bottom = 6.dp),
+                    color = NothingLedgerTheme.colors.contentMuted,
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+        month.weeks.forEach { week ->
+            Row(Modifier.fillMaxWidth()) {
+                week.forEach { day ->
+                    if (day == null) {
+                        Spacer(Modifier.weight(1f).height(58.dp))
+                    } else {
+                        CalendarCell(
+                            day = day,
+                            selected = day.date == month.query.selectedDate,
+                            onClick = { onSelectDate(day.date) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
@@ -104,6 +138,31 @@ private fun CalendarGrid(month: CalendarMonth, onSelectDate: (LocalDate) -> Unit
         CalendarMessage("NO ENTRIES / THIS DAY")
     } else {
         month.selectedTransactions.forEach { transaction -> CalendarTransactionRow(transaction) }
+    }
+}
+
+private fun Modifier.calendarMonthSwipe(
+    config: HorizontalSwipeConfig,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+): Modifier = pointerInput(config, onPreviousMonth, onNextMonth) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false)
+        var swipe = HorizontalSwipeState()
+        var pressed = true
+        while (pressed) {
+            val event = awaitPointerEvent()
+            val change: PointerInputChange = event.changes.firstOrNull() ?: break
+            val movement: Offset = change.positionChange()
+            swipe = swipe.move(movement.x, movement.y, config)
+            if (swipe.axisLock == GestureAxisLock.Horizontal) change.consume()
+            pressed = change.pressed
+        }
+        when (swipe.finish(config)) {
+            HorizontalSwipeAction.Previous -> onPreviousMonth()
+            HorizontalSwipeAction.Next -> onNextMonth()
+            HorizontalSwipeAction.None -> Unit
+        }
     }
 }
 

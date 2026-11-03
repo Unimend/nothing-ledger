@@ -143,6 +143,8 @@ Compose ← UiState ← StateFlow ← Result / Domain Event
 顶层导航只使用 `MainDestination` 表达 `TIMELINE / CALENDAR / STATISTICS / ACCOUNTS`。
 四个主页面处于同一个受控横向分页器中：横滑和底栏点击共享同一份
 `ShellState.selectedMain`，页面吸附完成后才提交导航状态；每页保留独立的纵向滚动位置。
+月份切换属于局部手势：流水页只在月份概览区响应，日历页只在星期与日期网格响应。
+两处共用设计系统中的方向锁与距离阈值，纵向滑动不会被误判，页面其余区域仍交给主分页器。
 记账和分类管理属于 `OverlayDestination`，覆盖在当前主页面上方；关闭后必须返回原主页面。
 `ShellReducer` 统一处理切换、覆盖页和返回，页面文字不参与导航判断。
 

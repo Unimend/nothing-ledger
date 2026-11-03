@@ -1,6 +1,8 @@
 package com.unimend.nothingledger.timeline
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,12 +13,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.unimend.nothingledger.design.LedgerControl
+import com.unimend.nothingledger.design.GestureAxisLock
+import com.unimend.nothingledger.design.HorizontalSwipeAction
+import com.unimend.nothingledger.design.HorizontalSwipeConfig
+import com.unimend.nothingledger.design.HorizontalSwipeState
 import com.unimend.nothingledger.design.LedgerSurface
 import com.unimend.nothingledger.design.NothingLedgerTheme
 import com.unimend.nothingledger.design.ledgerClickable
@@ -38,20 +51,13 @@ public fun TimelineHomePage(
     zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        TimelineHeader(state)
-        Spacer(Modifier.height(12.dp))
-        MonthNavigation(onPreviousMonth, onCurrentMonth, onNextMonth)
+        MonthOverviewRegion(state, onPreviousMonth, onCurrentMonth, onNextMonth)
         Spacer(Modifier.height(20.dp))
         when (state) {
             is TimelineState.Loading -> TimelineNotice("READING / LEDGER")
             is TimelineState.Failure -> TimelineNotice("ERROR / ${state.message.take(32)}", alert = true)
-            is TimelineState.Empty -> {
-                TimelineSummary(state.summary)
-                TimelineNotice("NO ENTRIES / YET")
-            }
+            is TimelineState.Empty -> TimelineNotice("NO ENTRIES / YET")
             is TimelineState.Content -> {
-                TimelineSummary(state.summary)
-                Spacer(Modifier.height(16.dp))
                 state.days.forEach { day ->
                     Text(
                         day.date.format(dayFormatter).uppercase(),
@@ -64,6 +70,66 @@ public fun TimelineHomePage(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MonthOverviewRegion(
+    state: TimelineState,
+    onPreviousMonth: () -> Unit,
+    onCurrentMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+) {
+    val density = LocalDensity.current
+    val swipeConfig = HorizontalSwipeConfig(
+        directionLockDistance = with(density) { 12.dp.toPx() },
+        actionDistance = with(density) { 56.dp.toPx() },
+    )
+    val previous by rememberUpdatedState(onPreviousMonth)
+    val next by rememberUpdatedState(onNextMonth)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .pointerInput(swipeConfig) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    var swipe = HorizontalSwipeState()
+                    while (true) {
+                        val change = awaitPointerEvent(PointerEventPass.Main).changes.firstOrNull() ?: break
+                        if (change.changedToUpIgnoreConsumed()) {
+                            when (swipe.finish(swipeConfig)) {
+                                HorizontalSwipeAction.Previous -> previous()
+                                HorizontalSwipeAction.Next -> next()
+                                HorizontalSwipeAction.None -> Unit
+                            }
+                            break
+                        }
+                        val movement = change.positionChange()
+                        swipe = swipe.move(movement.x, movement.y, swipeConfig)
+                        if (swipe.axisLock == GestureAxisLock.Horizontal) {
+                            change.consume()
+                        } else if (swipe.axisLock == GestureAxisLock.Vertical) {
+                            // Leave vertical/curved gestures untouched for the surrounding surface.
+                            break
+                        }
+                    }
+                }
+            },
+    ) {
+        TimelineHeader(state)
+        Spacer(Modifier.height(12.dp))
+        MonthNavigation(onPreviousMonth, onCurrentMonth, onNextMonth)
+        when (state) {
+            is TimelineState.Empty -> {
+                Spacer(Modifier.height(16.dp))
+                TimelineSummary(state.summary)
+            }
+            is TimelineState.Content -> {
+                Spacer(Modifier.height(16.dp))
+                TimelineSummary(state.summary)
+            }
+            is TimelineState.Loading, is TimelineState.Failure -> Unit
         }
     }
 }
